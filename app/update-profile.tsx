@@ -143,15 +143,23 @@ export default function UpdateProfile() {
           </View>
 
           <View>
-            <Text className="text-gray-700 font-medium mb-2">Bio</Text>
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-gray-700 font-medium">Bio</Text>
+              <Text className="text-gray-500 text-sm">{formData.bio.length}/150</Text>
+            </View>
             <TextInput
               className="border border-gray-300 rounded-lg px-3 py-3 text-base"
               value={formData.bio}
-              onChangeText={(text) => setFormData({...formData, bio: text})}
+              onChangeText={(text) => {
+                if (text.length <= 150) {
+                  setFormData({...formData, bio: text})
+                }
+              }}
               placeholder="Tell us about yourself"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
+              maxLength={150}
             />
           </View>
 

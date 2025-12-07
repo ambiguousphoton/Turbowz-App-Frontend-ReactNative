@@ -9,6 +9,7 @@ const UserCardSquareComponent = ({userID}: {userID: string}) => {
     const [loading, setLoading] = useState(true);
     const [profileImageError, setProfileImageError] = useState(false);
     const [currentUserID, setCurrentUserID] = useState<number | null>(null);
+    const [isTurboVerified, setIsTurboVerified] = useState(false);
 
     useEffect(() => {
         const getUserID = async () => {
@@ -22,6 +23,11 @@ const UserCardSquareComponent = ({userID}: {userID: string}) => {
             .then(setData)
             .catch(() => setData(null))
             .finally(() => setLoading(false));
+
+        fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
+            .then(res => res.json())
+            .then(result => setIsTurboVerified(result.turbomax_active || false))
+            .catch(() => setIsTurboVerified(false));
     }, [userID]);
 
     if (loading) return (
@@ -45,11 +51,11 @@ const UserCardSquareComponent = ({userID}: {userID: string}) => {
     };
 
     return (
-        <Pressable className="w-32 h-40 bg-white rounded-2xl p-3 justify-center items-center" onPress={handlePress}>
+        <Pressable className="w-32 h-40 bg-white border border-gray-100 rounded-2xl p-3 justify-center items-center" onPress={handlePress}>
             {/* Profile Icon */}
             {profileImageError ? (
                 <View className="w-12 h-12 rounded-full bg-primary-25 justify-center items-center mb-2">
-                    <Text className="text-primary text-lg font-semibold">
+                    <Text className="text-primary text-lg font-semibold" >
                         {data?.UserHandle?.[0]?.toUpperCase() || '?'}
                     </Text>
                 </View>
@@ -66,9 +72,19 @@ const UserCardSquareComponent = ({userID}: {userID: string}) => {
             <Text className="text-sm font-semibold text-center" numberOfLines={1}>
                 {data.UserProfileName}
             </Text>
-            <Text className="text-xs text-secondary text-center" numberOfLines={1}>
-                {data.UserHandle}
-            </Text>
+            <View className="flex-row items-center justify-center">
+
+                <Text className="text-xs text-secondary text-center" numberOfLines={1} >
+                    {data.UserHandle}
+                </Text>
+                {isTurboVerified && (
+                    <Image 
+                        source={require('../assets/images/TurboVerifiedIcon.png')} 
+                        className="w-3 h-3 ml-1" 
+                        resizeMode="contain" 
+                    />
+                )}
+            </View>
             <Text className="text-xs text-gray-600 text-center" numberOfLines={2}>
                 {data.UserDescription || "Hey there!"}
             </Text>

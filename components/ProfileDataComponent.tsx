@@ -3,6 +3,7 @@ import { View, Button, Text, Alert, ActivityIndicator, FlatList, Image, ScrollVi
 import { Link, Redirect, useFocusEffect } from "expo-router";
 import { UserDataInterface } from "@/interfaces/interfaces";
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ProfileHeaderComponent from "./ProfileHeaderComponent";
 import ProfileTabs from "./ProfileTabsComponent";
 
@@ -16,6 +17,7 @@ interface ProfileDataComponentProps {
 
 
 export default function ProfileDataComponent({ userID, isMyProfile }: ProfileDataComponentProps) {
+    const insets = useSafeAreaInsets();
     const [user, setUser] = useState<UserDataInterface | null>(null);
     const [loading, setLoading] = useState(true);
 

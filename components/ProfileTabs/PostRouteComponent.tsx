@@ -12,11 +12,9 @@ const fetchUserVideos = async (userID: number): Promise<VideoCardInterface[]> =>
   const response = await fetch(`http://10.0.2.2:8082/search-video-with?userID=${userID}`);
   if (!response.ok) throw new Error('Failed to fetch user videos');
   const data = await response.json();
-  
-  // Handle null or empty data
+
   if (!data || !Array.isArray(data)) return [];
   
-  // Transform API response to match VideoCardInterface
   return data.map((video: any) => ({
     VideoID: parseInt(video.Video_ID),
     UploaderName: video.Uploader_Name,

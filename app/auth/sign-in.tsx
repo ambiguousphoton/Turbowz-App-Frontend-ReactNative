@@ -25,13 +25,12 @@ export default function Auth (){
             <Image source={require("../../assets/images/Yuu.png")} className="absolute top-40 left-32 w-5 h-5 opacity-23" resizeMode="contain" />
             <Image source={require("../../assets/images/iEE.png")} className="absolute top-88 right-32 w-8 h-8 opacity-11" resizeMode="contain" />
             
-            <View className="flex-1 items-center justify-center px-6 ">
-                <Text className="text-4xl font-bold   text-center mb-8">
-                    Already a user!
-                </Text>
-                <SignInComponent/>  
-                {/* <Text className="text-white text-center mt-6">Don't have an Account? <Link className="text-secondary font-bold" href='/auth/sign-up'>Sign up</Link></Text> */}
-            </View>
+            <ScrollView className="flex-1 px-4 sm:px-6" showsVerticalScrollIndicator={false}>
+                <View className="items-center pt-2 sm:pt-4">
+                    <Image source={require("../../assets/images/TurbowzPinkIcon.png")} className="w-48 h-48 sm:w-60 sm:h-60 mb-4 sm:mb-6" resizeMode="contain" />
+                    <SignInComponent/>  
+                </View>
+            </ScrollView>
         </SafeAreaView>
     )
 }

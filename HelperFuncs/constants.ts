@@ -1,0 +1,21 @@
+export const ALLOWED_TAGS = [
+  { label: "Learning", value: "learn" },
+  { label: "Video Games", value: "vgames" },
+  { label: "Anime", value: "anim" },
+  { label: "Cartoons", value: "toon" },
+  { label: "Comedy", value: "com" },
+  { label: "Science", value: "sci" },
+  { label: "Music", value: "music" },
+  { label: "Action", value: "act"},
+  { label: "Adventure", value: "adven" },
+  { label: "Culture", value: "cultr" },
+  { label: "Movies", value: "movi" },
+  { label: "Romance", value: "rom" },
+  { label: "Horror", value: "horr" },
+  { label: "Religious", value: "relig" },
+  { label: "Kids shows", value: "kids" },
+  { label: "Story", value: "story" },
+  { label: "Fiction", value: "fictn" },
+  { label: "History", value: "hstry" },
+  { label: "Education", value: "edu" }
+];

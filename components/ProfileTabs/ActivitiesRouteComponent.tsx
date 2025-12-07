@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import VideoCard from '../VideoCardCompnent';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import CompactVideoCard from '../CompactVideoCard';
 import useFetch from '@/Services/useFetch';
 import { GetToken } from '@/HelperFuncs/localStorage';
+import { useRouter } from 'expo-router';
 
 interface ActivitiesRouteProps {
   userID: number;
@@ -29,14 +30,9 @@ const fetchSavedVideos = async (offset: number = 0) => {
 };
 
 export const ActivitiesRoute = ({ userID }: ActivitiesRouteProps) => {
-  const [page, setPage] = useState(1);
+  const router = useRouter();
   const [allVideos, setAllVideos] = useState<any[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasNextPage, setHasNextPage] = useState(true);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
-  const [isSavedExpanded, setIsSavedExpanded] = useState(false);
   const [savedVideos, setSavedVideos] = useState<any[]>([]);
-  const [savedLoading, setSavedLoading] = useState(false);
   
   const { data: videos, loading, error } = useFetch(() => fetchWatchHistory(1), true);
   const { data: savedData, loading: savedLoadingState } = useFetch(() => fetchSavedVideos(0), true);
@@ -45,69 +41,38 @@ export const ActivitiesRoute = ({ userID }: ActivitiesRouteProps) => {
   )
   React.useEffect(() => {
     if (videos?.results) {
-      const uniqueVideos = videos.results.filter((video: any, index: number, self: any[]) => 
-        self.findIndex(v => v.Video_ID === video.Video_ID) === index
-      );
-      setAllVideos(uniqueVideos);
-      setPage(1);
-      setHasNextPage(videos.results.length === 10);
+      setAllVideos(videos.results.slice(0, 5));
     }
   }, [videos]);
 
   React.useEffect(() => {
     if (savedData) {
-      setSavedVideos(savedData);
+      setSavedVideos(savedData.slice(0, 5));
     }
   }, [savedData]);
-  
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasNextPage) return;
-    
-    setLoadingMore(true);
-    try {
-      const nextPage = page + 1;
-      const newData = await fetchWatchHistory(nextPage);
-      if (newData?.results?.length) {
-        setAllVideos(prev => {
-          const combined = [...prev, ...newData.results];
-          return combined.filter((video, index, self) => 
-            self.findIndex(v => v.Video_ID === video.Video_ID) === index
-          );
-        });
-        setPage(nextPage);
-        setHasNextPage(newData.results.length === 10);
-      } else {
-        setHasNextPage(false);
-      }
-    } catch (err) {
-      console.error('Error loading more videos:', err);
-      setHasNextPage(false);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [page, loadingMore, hasNextPage]);
 
   if (loading || savedLoadingState) return <Text className="px-2">Loading activities...</Text>;
   if (error) return <Text className="px-2 text-red-500">Error loading watch history</Text>;
-  if (!allVideos.length) return <Text className="px-2">No watch history found</Text>;
 
   return (
-    <View className="px-2 my-3">
+    <ScrollView className="px-2 my-3">
       <TouchableOpacity 
         className="flex-row items-center justify-between py-2 mb-2"
-        onPress={() => setIsHistoryExpanded(!isHistoryExpanded)}
+        onPress={() => router.push('/history')}
       >
         <Text className="text-lg font-semibold">History</Text>
-        <Text className="text-gray-500">{isHistoryExpanded ? '−' : '+'}</Text>
+        <Text className="text-gray-500">→</Text>
       </TouchableOpacity>
       
-      {isHistoryExpanded && (
-        <FlatList
-          data={allVideos}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(item) => item.Video_ID}
-          renderItem={({ item }) => (
-            <VideoCard 
+      {allVideos.length > 0 ? (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          className="mb-4"
+        >
+          {allVideos.map((item) => (
+            <CompactVideoCard 
+              key={item.Video_ID}
               VideoURL={item.Video_Url}
               Title={item.Title}
               Views={item.Views}
@@ -117,30 +82,29 @@ export const ActivitiesRoute = ({ userID }: ActivitiesRouteProps) => {
               UploaderID={item.Uploader_ID}
               UploaderHandle={item.Uploader_Handle}
             />
-          )}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={() => 
-            loadingMore ? <ActivityIndicator size="small" color="black" className="py-4" /> : null
-          }
-        />
+          ))}
+        </ScrollView>
+      ) : (
+        <Text className="px-2 text-gray-500 mb-4">No watch history found</Text>
       )}
 
       <TouchableOpacity 
         className="flex-row items-center justify-between py-2 mb-2 mt-4"
-        onPress={() => setIsSavedExpanded(!isSavedExpanded)}
+        onPress={() => router.push('/saved')}
       >
         <Text className="text-lg font-semibold">Saved Videos</Text>
-        <Text className="text-gray-500">{isSavedExpanded ? '−' : '+'}</Text>
+        <Text className="text-gray-500">→</Text>
       </TouchableOpacity>
       
-      {isSavedExpanded && (
-        <FlatList
-          data={savedVideos}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(item) => item.Video_ID}
-          renderItem={({ item }) => (
-            <VideoCard 
+      {savedVideos.length > 0 ? (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          className="mb-4"
+        >
+          {savedVideos.map((item) => (
+            <CompactVideoCard 
+              key={item.Video_ID}
               VideoURL={item.Video_Url}
               Title={item.Title}
               Views={item.Views}
@@ -150,9 +114,11 @@ export const ActivitiesRoute = ({ userID }: ActivitiesRouteProps) => {
               UploaderID={item.Uploader_ID}
               UploaderHandle={item.Uploader_Handle}
             />
-          )}
-        />
+          ))}
+        </ScrollView>
+      ) : (
+        <Text className="px-2 text-gray-500">No saved videos found</Text>
       )}
-    </View>
+    </ScrollView>
   );
 };

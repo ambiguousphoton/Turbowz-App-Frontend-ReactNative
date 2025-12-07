@@ -122,6 +122,7 @@ const ChatPage = () => {
   const [hasSharedContent, setHasSharedContent] = useState(false);
   const [showNewMessages, setShowNewMessages] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
   const scaleAnim = useState(new Animated.Value(0))[0];
   const flatListRef = useRef<FlatList>(null);
 
@@ -152,6 +153,11 @@ const ChatPage = () => {
       .then(res => res.json())
       .then(setUser)
       .catch(() => setUser(null));
+
+    fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
+      .then(res => res.json())
+      .then(result => setIsTurboVerified(result.turbomax_active || false))
+      .catch(() => setIsTurboVerified(false));
   }, [userID]);
 
   useEffect(() => {
@@ -309,9 +315,18 @@ const ChatPage = () => {
             className="flex-1" 
             onPress={() => router.push(`/users/${userID}`)}
           >
-            <Text className="text-lg font-semibold">
-              {user?.UserProfileName || "Chat"}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className="text-lg font-semibold">
+                {user?.UserProfileName || "Chat"}
+              </Text>
+              {isTurboVerified && (
+                <Image 
+                  source={require('@/assets/images/TurboVerifiedIcon.png')} 
+                  className="w-4 h-4 ml-1" 
+                  resizeMode="contain" 
+                />
+              )}
+            </View>
           </TouchableOpacity>
         </View>
 

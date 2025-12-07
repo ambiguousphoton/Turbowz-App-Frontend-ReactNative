@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { timeAgo } from '@/HelperFuncs/timeAgo';
+import { TagsDisplay } from './TagsDisplay';
 
 interface FullVideoCardComponentProps {
   VideoURL: string;
@@ -12,6 +13,7 @@ interface FullVideoCardComponentProps {
   Video_ID: string;
   Uploader_ID: string;
   Uploader_Handle?: string;
+  Tags?: string[];
 }
 
 export default function FullVideoCardComponent({
@@ -22,12 +24,14 @@ export default function FullVideoCardComponent({
   Uploader_Name,
   Video_ID,
   Uploader_ID,
-  Uploader_Handle
+  Uploader_Handle,
+  Tags
 }: FullVideoCardComponentProps) {
   const router = useRouter();
   const [imageError, setImageError] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
 
   useEffect(() => {
     const fetchSavedStatus = async () => {
@@ -49,6 +53,15 @@ export default function FullVideoCardComponent({
     };
     fetchSavedStatus();
   }, [Video_ID]);
+
+  useEffect(() => {
+    if (Uploader_ID) {
+      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${Uploader_ID}`)
+        .then(res => res.json())
+        .then(result => setIsTurboVerified(result.turbomax_active || false))
+        .catch(() => setIsTurboVerified(false));
+    }
+  }, [Uploader_ID]);
 
   return (
     <TouchableOpacity 
@@ -129,10 +142,20 @@ export default function FullVideoCardComponent({
               <Image source={isSaved ? require('../assets/images/SavedIcon.png') : require('../assets/images/SaveIcon.png')} className="w-5 h-5" resizeMode="contain"/>
             </TouchableOpacity>
           </View>
-          <Text className="text-secondary text-sm ">{Uploader_Handle}</Text>
+          <View className="flex-row items-center">
+            <Text className="text-secondary text-sm ">{Uploader_Handle}</Text>
+            {isTurboVerified && (
+              <Image 
+                source={require('../assets/images/TurboVerifiedIcon.png')} 
+                className="w-3 h-3 ml-1" 
+                resizeMode="contain" 
+              />
+            )}
+          </View>
           <Text className="text-gray-500 text-xs">
             {Views} views • {timeAgo(Upload_Time)}
           </Text>
+          <TagsDisplay tags={Tags || []} />
         </View>
       </View>
     </TouchableOpacity>

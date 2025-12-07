@@ -12,7 +12,7 @@ import CommentSectionComponent from "@/components/CommentSection";
 import EcoCommentInputComponent from "@/components/EcoCommentInput";
 
 export default function EcoPage() {
-  const { ecoID } = useLocalSearchParams();
+  const { ecoID, openComments } = useLocalSearchParams();
   const [ecoData, setEcoData] = useState<EcoDataInterface | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentUserID, setCurrentUserID] = useState<number | null>(null);
@@ -22,6 +22,7 @@ export default function EcoPage() {
   const [followInfo, setFollowInfo] = useState<{FollowerCount: number, FolloweeCount: number, AlreadyFollowed: boolean} | null>(null);
   const [isLuved, setIsLuved] = useState<boolean>(false);
   const [currentLuvCount, setCurrentLuvCount] = useState<number>(0);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
   const { width: screenWidth } = Dimensions.get('window');
   const luvAnimScale = useRef(new Animated.Value(1)).current;
   const commentsAnimScale = useRef(new Animated.Value(1)).current;
@@ -29,6 +30,7 @@ export default function EcoPage() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const snapPoints = useMemo(() => ['71%', "90%"], []);
 
   useEffect(() => {
@@ -78,6 +80,15 @@ export default function EcoPage() {
   }, [currentUserID, ecoData?.Uploader_ID]);
 
   useEffect(() => {
+    if (ecoData?.Uploader_ID) {
+      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${ecoData.Uploader_ID}`)
+        .then(res => res.json())
+        .then(result => setIsTurboVerified(result.turbomax_active || false))
+        .catch(() => setIsTurboVerified(false));
+    }
+  }, [ecoData?.Uploader_ID]);
+
+  useEffect(() => {
     const getLuvStatus = async () => {
       if (currentUserID && ecoData?.Eco_Id) {
         try {
@@ -121,6 +132,12 @@ export default function EcoPage() {
     };
     fetchSavedStatus();
   }, [ecoData?.Eco_Id]);
+
+  useEffect(() => {
+    if (openComments === 'true' && ecoData) {
+      handleOpenPressComments();
+    }
+  }, [openComments, ecoData]);
 
   const handleFollow = async () => {
     if (!ecoData?.Uploader_ID || !currentUserID) return;
@@ -250,7 +267,16 @@ export default function EcoPage() {
               }}
             >
               <Text className="text-black font-semibold mr-2">{ecoData.Uploader_Name}</Text>
-              <Text className="text-gray-500 text-secondary">{ecoData.Uploader_Handle}</Text>
+              <View className="flex-row items-center">
+                <Text className="text-gray-500 text-secondary">{ecoData.Uploader_Handle}</Text>
+                {isTurboVerified && (
+                  <Image 
+                    source={require('../../assets/images/TurboVerifiedIcon.png')} 
+                    className="w-4 h-4 ml-1" 
+                    resizeMode="contain" 
+                  />
+                )}
+              </View>
             </TouchableOpacity>
             {currentUserID !== ecoData.Uploader_ID && (
               <TouchableOpacity 
@@ -291,22 +317,13 @@ export default function EcoPage() {
               ))}
             </ScrollView>
             {ecoData.Images_Count > 1 && (
-              <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, flexDirection: 'row' }}>
-                {Array.from({ length: ecoData.Images_Count }, (_, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: (currentImageIndex[ecoData.Eco_Id] || 0) === index ? 'white' : 'rgba(255,255,255,0.5)',
-                      marginHorizontal: 2
-                    }}
-                  />
-                ))}
+              <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                <Text style={{ color: 'white', fontSize: 12 }}>
+                  {(currentImageIndex[ecoData.Eco_Id] || 0) + 1}/{ecoData.Images_Count}
+                </Text>
               </View>
             )}
-            <ScrollView horizontal className="flex-row mt-2 mb-9" showsHorizontalScrollIndicator={false}>
+            <ScrollView horizontal className="flex-row mt-4 mb-9" showsHorizontalScrollIndicator={false}>
               <TouchableOpacity 
                 className="p-2 mr-2 flex-row items-center"
                 onPress={handleLuv}
@@ -362,6 +379,28 @@ export default function EcoPage() {
                 <Image source={isSaved ? require("../../assets/images/SavedIcon.png") : require("../../assets/images/SaveIcon.png")} className="w-6 h-6" resizeMode="contain"/>
               </TouchableOpacity>
             </ScrollView>
+            
+            {ecoData.Tags && ecoData.Tags.length > 0 && (
+              <View className="px-4 pb-4">
+                <TouchableOpacity onPress={() => setShowTags(!showTags)} className="flex-row items-center">
+                  <Image 
+                    source={require('../../assets/images/backIcon.png')} 
+                    className="w-3 h-3 mr-1" 
+                    style={{ transform: [{ rotate: showTags ? '270deg' : '180deg' }] }}
+                  />
+                  <Text className="text-gray-500 text-xs">Tags ({ecoData.Tags.length})</Text>
+                </TouchableOpacity>
+                {showTags && (
+                  <View className="flex-row flex-wrap mt-2">
+                    {ecoData.Tags.map((tag, index) => (
+                      <Text key={index} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mr-1 mb-1">
+                        {tag}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
             
             <TouchableOpacity 
               className="bg-gray-100 rounded-xl mb-3 justify-center items-center py-1 flex-1 mx-2"

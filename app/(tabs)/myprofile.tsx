@@ -1,12 +1,12 @@
-// RegisterPage.tsx
 import ProfileDataComponent from  "@/components/ProfileDataComponent";
 import React, { useState, useEffect } from "react";
-import { Text , Image} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Text , Image, View} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GetUser } from "@/HelperFuncs/localStorage";
 import { UserDataInterface } from "@/interfaces/interfaces";
 
 export default function RegisterPage() {
+    const insets = useSafeAreaInsets();
     const [userID, setUserID] = useState<number | null>(null);
 
     useEffect(() => {
@@ -19,15 +19,17 @@ export default function RegisterPage() {
 
     if (!userID) {
         return (
-            <SafeAreaView className="flex-1 bg-white">
-                <Text>Loading...</Text>
-            </SafeAreaView>
+            <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+                <View className="flex-1 items-center justify-center">
+                    <Text>Loading...</Text>
+                </View>
+            </View>
         );
     }
 
     return ( 
-        <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
             <ProfileDataComponent userID={userID} isMyProfile={true}/>
-        </SafeAreaView>
+        </View>
     )
 }

@@ -5,11 +5,16 @@ interface Props {
     text: string;
     onPress?: () => void;
     clicked?: boolean;
+    fullWidth?: boolean;
 }
 
-const PrimaryButtonComponent: React.FC<Props> = ({ text, onPress, clicked = false }) => {
+interface SecondaryProps extends Props {
+    fullWidth?: boolean;
+}
+
+const PrimaryButtonComponent: React.FC<Props> = ({ text, onPress, clicked = false, fullWidth = true }) => {
     return (
-        <TouchableOpacity className={`${clicked ? 'bg-select' : 'bg-primary-150'} rounded-xl justify-center items-center py-1 flex-1`} onPress={onPress}>
+        <TouchableOpacity className={`${clicked ? 'bg-select' : 'bg-primary-150'} rounded-xl justify-center items-center py-2 px-4 ${fullWidth ? 'flex-1' : ''}`} onPress={onPress}>
             <Text className={`${clicked ? 'text-black' : 'text-white'} font-semibold`}>{text}</Text>
         </TouchableOpacity>
     );
@@ -18,9 +23,9 @@ const PrimaryButtonComponent: React.FC<Props> = ({ text, onPress, clicked = fals
 export default PrimaryButtonComponent;
 
 
-export const SecondaryButtonComponent: React.FC<Props> = ({ text, onPress }) => {
+export const SecondaryButtonComponent: React.FC<SecondaryProps> = ({ text, onPress, fullWidth = true }) => {
     return (
-        <TouchableOpacity className="bg-select rounded-xl justify-center items-center py-1 flex-1" onPress={onPress}>
+        <TouchableOpacity className={`bg-select rounded-xl justify-center items-center py-2 px-4 ${fullWidth ? 'flex-1' : ''}`} onPress={onPress}>
             <Text className=" font-semibold">{text}</Text>
         </TouchableOpacity>
     );

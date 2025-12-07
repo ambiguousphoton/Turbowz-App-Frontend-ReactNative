@@ -18,8 +18,10 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
   const [initialIsLuved, setInitialIsLuved] = useState<boolean>(false);
   const [currentLuvCount, setCurrentLuvCount] = useState<number>(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
   const { width: screenWidth } = Dimensions.get('window');
   const luvAnimScale = useRef(new Animated.Value(1)).current;
+  const [showTags, setShowTags] = useState(false);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -46,6 +48,15 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
     };
     getFollowInfo();
   }, [currentUserID, item.Uploader_ID]);
+
+  useEffect(() => {
+    if (item.Uploader_ID) {
+      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${item.Uploader_ID}`)
+        .then(res => res.json())
+        .then(result => setIsTurboVerified(result.turbomax_active || false))
+        .catch(() => setIsTurboVerified(false));
+    }
+  }, [item.Uploader_ID]);
 
   useEffect(() => {
     const getLuvStatus = async () => {
@@ -175,7 +186,7 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
   return (
     <Link href={`/ecos/${item.Eco_Id}`} asChild>
       <TouchableOpacity>
-        <View className="border border-gray-200">
+        <View className="border-b border-gray-100">
       <View className="px-2 py-2 flex-row items-center">
         {profileImageError ? (
           <View className="w-6 h-6 mr-2 rounded-full bg-primary-25 justify-center items-center">
@@ -202,7 +213,16 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
           }}
         >
           <Text className="text-black font-semibold mr-2">{item.Uploader_Name}</Text>
-          <Text className="text-gray-500 text-secondary">{item.Uploader_Handle}</Text>
+          <View className="flex-row items-center">
+            <Text className="text-gray-500 text-secondary">{item.Uploader_Handle}</Text>
+            {isTurboVerified && (
+              <Image 
+                source={require('../assets/images/TurboVerifiedIcon.png')} 
+                className="w-4 h-4 ml-1" 
+                resizeMode="contain" 
+              />
+            )}
+          </View>
         </TouchableOpacity>
         {currentUserID !== item.Uploader_ID && (
           <TouchableOpacity 
@@ -247,52 +267,55 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
           ))}
         </ScrollView>
         {item.Images_Count > 1 && (
-          <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, flexDirection: 'row' }}>
-            {Array.from({ length: item.Images_Count }, (_, index) => (
-              <View
-                key={index}
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: (currentImageIndex[item.Eco_Id] || 0) === index ? 'white' : 'rgba(255,255,255,0.5)',
-                  marginHorizontal: 2
-                }}
-              />
-            ))}
+          <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: 'white', fontSize: 12 }}>
+              {(currentImageIndex[item.Eco_Id] || 0) + 1}/{item.Images_Count}
+            </Text>
           </View>
         )}
-        <ScrollView horizontal className="flex-row mt-2 mb-9" showsHorizontalScrollIndicator={false}>
+        <View className="flex-row justify-between mt-6 mb-14 px-4">
+          <View className="flex-row" style={{ gap: 20 }}>
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={handleLuv}
+            >
+              <Animated.View style={{ transform: [{ scale: luvAnimScale }] }}>
+                <Image 
+                  source={isLuved ? require("../assets/images/LuvedIcon.png") : require("../assets/images/ToLuvIcon.png")} 
+                  className="w-5 h-5" 
+                  resizeMode="contain"
+                />
+              </Animated.View>
+              <Text className="text-gray-600 text-sm ml-1">{currentLuvCount}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => router.push(`/ecos/${item.Eco_Id}?openComments=true`)}
+            >
+              <Image source={require("../assets/images/CommentsIcon.png")} className="w-5 h-5" resizeMode="contain"/>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => router.push({
+                pathname: '/share',
+                params: {
+                  shareType: 'eco',
+                  shareId: item.Eco_Id,
+                  shareText: item.Eco_Text,
+                  shareUrl: item.Eco_Url
+                }
+              })}
+            >
+              <Image source={require("../assets/images/ShareIcon.png")} className="w-5 h-5" resizeMode="contain"/>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className="flex-row items-center"
+            >
+              <Image source={require("../assets/images/ShareExternalIcon.png")} className="w-5 h-5" resizeMode="contain"/>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity 
-            className="p-2 mr-2 flex-row items-center"
-            onPress={handleLuv}
-          >
-            <Animated.View style={{ transform: [{ scale: luvAnimScale }] }}>
-              <Image 
-                source={isLuved ? require("../assets/images/LuvedIcon.png") : require("../assets/images/ToLuvIcon.png")} 
-                className="w-6 h-6" 
-                resizeMode="contain"
-              />
-            </Animated.View>
-            <Text className="text-gray-600 text-sm ml-1">{currentLuvCount}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="p-1 rounded-xl flex-row items-center p-2 mr-2"
-            onPress={() => router.push({
-              pathname: '/share',
-              params: {
-                shareType: 'eco',
-                shareId: item.Eco_Id,
-                shareText: item.Eco_Text,
-                shareUrl: item.Eco_Url
-              }
-            })}
-          >
-            <Image source={require("../assets/images/ShareIcon.png")} className="w-7 h-7 mx-2" resizeMode="contain"/>
-            <Text className="text-gray-600 text-sm mr-2">Share</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            className="p-2 mr-2"
+            className="flex-row items-center"
             onPress={async () => {
               try {
                 const token = await GetToken('jwt');
@@ -315,9 +338,30 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
               }
             }}
           >
-            <Image source={isSaved ? require("../assets/images/SavedIcon.png") : require("../assets/images/SaveIcon.png")} className="w-6 h-6" resizeMode="contain"/>
+            <Image source={isSaved ? require("../assets/images/SavedIcon.png") : require("../assets/images/SaveIcon.png")} className="w-5 h-5" resizeMode="contain"/>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
+        {item.Tags && item.Tags.length > 0 && (
+          <View className="px-4 pb-4">
+            <TouchableOpacity onPress={() => setShowTags(!showTags)} className="flex-row items-center">
+              <Image 
+                source={require('../assets/images/backIcon.png')} 
+                className="w-3 h-3 mr-1" 
+                style={{ transform: [{ rotate: showTags ? '270deg' : '180deg' }] }}
+              />
+              <Text className="text-gray-500 text-xs">Tags ({item.Tags.length})</Text>
+            </TouchableOpacity>
+            {showTags && (
+              <View className="flex-row flex-wrap mt-2">
+                {item.Tags.map((tag, index) => (
+                  <Text key={index} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mr-1 mb-1">
+                    {tag}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
       </View>
       
       {Object.keys(imageError).some(key => key.startsWith(item.Eco_Id.toString())) && (

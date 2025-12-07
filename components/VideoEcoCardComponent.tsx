@@ -28,6 +28,7 @@ export default function VideoEcoCardComponent({
   const [imageError, setImageError] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
 
   useEffect(() => {
     const fetchSavedStatus = async () => {
@@ -50,6 +51,15 @@ export default function VideoEcoCardComponent({
     fetchSavedStatus();
   }, [Video_ID]);
 
+  useEffect(() => {
+    if (Uploader_ID) {
+      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${Uploader_ID}`)
+        .then(res => res.json())
+        .then(result => setIsTurboVerified(result.turbomax_active || false))
+        .catch(() => setIsTurboVerified(false));
+    }
+  }, [Uploader_ID]);
+
   return (
     <TouchableOpacity 
       className="bg-white px-2 mt-3 pb-3 border-b border-gray-200"
@@ -71,7 +81,16 @@ export default function VideoEcoCardComponent({
           />
         )}        
         <View className="flex-1">
-          <Text className="text-secondary text-sm ">{Uploader_Handle}</Text>
+          <View className="flex-row items-center">
+            <Text className="text-secondary text-sm ">{Uploader_Handle}</Text>
+            {isTurboVerified && (
+              <Image 
+                source={require('../assets/images/TurboVerifiedIcon.png')} 
+                className="w-3 h-3 ml-1" 
+                resizeMode="contain" 
+              />
+            )}
+          </View>
           <Text className="text-black text-base font-medium" numberOfLines={2}>
             {Title}
           </Text>

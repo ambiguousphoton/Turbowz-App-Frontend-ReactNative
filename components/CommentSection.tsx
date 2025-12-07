@@ -6,7 +6,8 @@ import { Link } from "expo-router";
 import { timeAgo } from "@/HelperFuncs/timeAgo";
 import { ScrollView, FlatList } from "react-native-gesture-handler";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-export default function CommentSectionComponent({videoID, ecoID, onRefresh}: {videoID?:number; ecoID?:number; onRefresh?: (refreshFn: () => void) => void}) {
+import { TimestampText } from "./TimestampText";
+export default function CommentSectionComponent({videoID, ecoID, onRefresh, onTimestampPress}: {videoID?:number; ecoID?:number; onRefresh?: (refreshFn: () => void) => void; onTimestampPress?: (seconds: number) => void}) {
   const [comments, setComments] = useState<CommentInterface[]>([]);
 
   const refreshComments = async () => {
@@ -51,7 +52,7 @@ export default function CommentSectionComponent({videoID, ecoID, onRefresh}: {vi
                 </View>
             }
             renderItem={({ item }) => (
-                <View className=" my-1 mx-1 p-2 pr-5 flex-row rounded-2xl bg-white text-secondary " key={item.Comment_id}> 
+                <View className=" pb-9 pt-2 border-b border-gray-100 mx-1 p-2 pr-5 flex-row rounded-2xl bg-white text-secondary " key={item.Comment_id}> 
                     <View className="w-6 h-6 mr-2 rounded-full bg-primary-25 justify-center items-center">
                         <Text className="text-primary text-xs font-semibold">
                             {item.Commenter_Name?.[0]?.toUpperCase() || '?'}
@@ -59,8 +60,11 @@ export default function CommentSectionComponent({videoID, ecoID, onRefresh}: {vi
                     </View>
                     
                     <View className="flex-1">
-                        <Text className="text-secondary text-xs mb-1 ">{item.Commenter_Name} |  {timeAgo(item.Comment_date)} </Text>
-                        <Text className="text-sm">{item.Comment_text}</Text>
+                        <Text className="font-semibold text-xs mb-1 ">{item.Commenter_Name} |  {timeAgo(item.Comment_date)} </Text>
+                        <TimestampText 
+                          text={item.Comment_text} 
+                          onTimestampPress={onTimestampPress}
+                        />
                     </View>
 
                 </View>

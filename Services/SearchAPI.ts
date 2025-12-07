@@ -1,10 +1,10 @@
 import { VideoCardInterface } from "@/interfaces/interfaces";
 
-export const FetchVideos = async ({keyword}: {keyword: string}) => {
+export const FetchVideos = async ({keyword, limit = 10, offset = 0}: {keyword: string, limit?: number, offset?: number}) => {
 
     const endpoint = keyword 
-    ? `http://10.0.2.2:8082/search?keyword=${encodeURIComponent(keyword)}`
-    : `http://10.0.2.2:8082/search?keyword=hostel`
+    ? `http://10.0.2.2:8082/search?keyword=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}`
+    : `http://10.0.2.2:8082/search?keyword=hostel&limit=${limit}&offset=${offset}`
 
     const response = await fetch(endpoint, {
         method: 'GET',
@@ -29,7 +29,8 @@ export const FetchVideos = async ({keyword}: {keyword: string}) => {
         Title: video.Title,
         Views: video.Views,
         VideoURL: video.VideoURL,
-        Date: video.Date
+        Date: video.Date,
+        Tags: video.Tags
     }));
     return data;
 }

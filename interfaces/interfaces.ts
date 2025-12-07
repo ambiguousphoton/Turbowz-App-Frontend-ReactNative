@@ -6,6 +6,7 @@ export interface VideoCardInterface {
     Title: string; 
     Views: number;
     VideoURL: string; 
+    Tags: string[];
     Date: string;
 }
 
@@ -20,6 +21,7 @@ export interface VideoDetailsInterface{
     Luvs: number;
     Upload_Time: string;
     Already_Luved: boolean;
+    Tags: string[];
 }
 
 
@@ -76,6 +78,7 @@ export interface EcoDataInterface{
   Uploader_ID: number
   Save_Count: number
   Already_Luved: boolean
+  Tags: string[]
 }
 
 

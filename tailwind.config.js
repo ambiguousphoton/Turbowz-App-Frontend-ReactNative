@@ -19,8 +19,26 @@ module.exports = {
         wierd: "#E5FF01",
         select: "#EEEEEE",
         back:'#000000'
+      },
+      borderRadius: {
+        'diamond': '0px',
       }
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addUtilities }) {
+      addUtilities({
+        '.shape-circle': {
+          borderRadius: '9999px',
+        },
+        '.shape-square': {
+          borderRadius: '12px',
+        },
+        '.shape-diamond': {
+          borderRadius: '0px',
+          transform: 'rotate(45deg)',
+        },
+      })
+    },
+  ],
 }

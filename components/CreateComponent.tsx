@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { View, Button, Text, Alert, ActivityIndicator, TouchableOpacity, TextInput } from "react-native";
 import { GetToken } from "@/HelperFuncs/localStorage"; // adjust path to your helper
+import { ALLOWED_TAGS } from "@/HelperFuncs/constants";
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer, VideoPlayer } from "expo-video";
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,6 +18,7 @@ const UploadVideoPreviewAndInput = ({ player, videoURI }: { player: VideoPlayer,
   const [title, setTitle] = useState("");
   const [info, setInfo] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handlePublish = async () => {
     if (uploading) return; // Prevent multiple requests
@@ -44,6 +46,7 @@ const UploadVideoPreviewAndInput = ({ player, videoURI }: { player: VideoPlayer,
       // 3. Use the trimmed title for the upload
       formData.append("title", trimmedTitle);
       formData.append("info", info);
+      formData.append("tags", JSON.stringify(selectedTags));
       
 
       const token = await GetToken('jwt');
@@ -121,7 +124,7 @@ const UploadVideoPreviewAndInput = ({ player, videoURI }: { player: VideoPlayer,
         />
       </View>
 
-      <TagDropdown />
+      <TagDropdown selectedTags={selectedTags} onTagsChange={setSelectedTags} />
 
       <TouchableOpacity 
         className={`mt-6 px-6 py-4 rounded-xl ${uploading ? 'bg-gray-400' : 'bg-blue-600'}`}
@@ -146,6 +149,7 @@ export default function UploadVideo() {
   const [title, setTitle] = useState("");
   const [info, setInfo] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -199,6 +203,7 @@ export default function UploadVideo() {
 
       formData.append("title", trimmedTitle);
       formData.append("info", info);
+      formData.append("tags", JSON.stringify(selectedTags));
 
       const token = await GetToken('jwt');
       if (!token) {
@@ -256,7 +261,7 @@ export default function UploadVideo() {
         />
       </View>
 
-      <TagDropdown />
+      <TagDropdown selectedTags={selectedTags} onTagsChange={setSelectedTags} />
 
       {videoURI ? (
         <View className="flex-1 mt-6">
@@ -297,16 +302,8 @@ export default function UploadVideo() {
 
 
 
-export const TagDropdown = () => {
+export const TagDropdown = ({ selectedTags, onTagsChange }: { selectedTags: string[], onTagsChange: (tags: string[]) => void }) => {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState([]);
-  const [items, setItems] = useState([
-    { label: "React", value: "react" },
-    { label: "JavaScript", value: "javascript" },
-    { label: "Python", value: "python" },
-    { label: "Machine Learning", value: "ml" },
-    { label: "AI", value: "ai" },
-  ]);
 
   return (
     <View className="py-4">
@@ -317,11 +314,11 @@ export const TagDropdown = () => {
       <DropDownPicker
         multiple={true}
         open={open}
-        value={value}
-        items={items}
+        value={selectedTags}
+        items={ALLOWED_TAGS}
         setOpen={setOpen}
-        setValue={setValue}
-        setItems={setItems}
+        setValue={onTagsChange}
+        setItems={() => {}}
         placeholder="Choose tags..."
         style={{
           backgroundColor: "#fff",
@@ -351,9 +348,9 @@ export const TagDropdown = () => {
         }}
       />
 
-      {value.length > 0 && (
+      {selectedTags.length > 0 && (
         <View className="flex-row flex-wrap mt-4">
-          {value.map((tag) => (
+          {selectedTags.map((tag) => (
             <View
               key={tag}
               className="bg-primary-25 px-3 py-1 rounded-full mr-2 mb-2"

@@ -8,7 +8,7 @@ import VideoCard from "@/components/VideoCardCompnent";
 import UserContactCard from "@/components/UserContactCard";
 import { EcoCardComponent } from "@/components/EcoCardComponent";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGlobalSearchParams } from 'expo-router';
 import UserContactCardTypeSearch from "@/components/UserProfileCardTypeSearch";
 import TrendingEcoComponent from "@/components/TrendingEcoComponent";
@@ -37,6 +37,10 @@ export default function Index() {
   const [ecoPage, setEcoPage] = useState(1);
   const [loadingMoreEcos, setLoadingMoreEcos] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [searchVideos, setSearchVideos] = useState<any[]>([]);
+  const [searchOffset, setSearchOffset] = useState(0);
+  const [loadingMoreSearch, setLoadingMoreSearch] = useState(false);
+  const [hasMoreSearch, setHasMoreSearch] = useState(true);
   
   const fetchTrendingContent = async (pageNum: number = 1) => {
     const user = await GetUser();
@@ -80,7 +84,7 @@ export default function Index() {
     refetch: videosRefetch,
     reset: videosReset,
     error: videosError,
-  } = useFetch(() => FetchVideos({ keyword: searchQuerry }), true);
+  } = useFetch(() => FetchVideos({ keyword: searchQuerry, limit: 10, offset: 0 }), true);
   
   const {
     data: trendingContent,
@@ -193,6 +197,14 @@ export default function Index() {
   };
 
   useEffect(() => {
+    if (videos) {
+      setSearchVideos(videos);
+      setSearchOffset(0);
+      setHasMoreSearch(videos.length >= 10);
+    }
+  }, [videos]);
+
+  useEffect(() => {
     const func = async () => {
       if (searchQuerry.trim()) {
         await videosRefetch();
@@ -200,10 +212,35 @@ export default function Index() {
       } else {
         videosReset();
         usersReset();
+        setSearchVideos([]);
+        setSearchOffset(0);
       }
     };
     func();
   }, [searchQuerry]);
+
+  const loadMoreSearchVideos = async () => {
+    if (loadingMoreSearch || !hasMoreSearch || !searchQuerry.trim()) return;
+    
+    setLoadingMoreSearch(true);
+    try {
+      const newOffset = searchOffset + 10;
+      const newVideos = await FetchVideos({ keyword: searchQuerry, limit: 10, offset: newOffset });
+      
+      if (newVideos && newVideos.length > 0) {
+        setSearchVideos(prev => [...prev, ...newVideos]);
+        setSearchOffset(newOffset);
+        setHasMoreSearch(newVideos.length >= 10);
+      } else {
+        setHasMoreSearch(false);
+      }
+    } catch (error) {
+      console.error('Error loading more search videos:', error);
+      setHasMoreSearch(false);
+    } finally {
+      setLoadingMoreSearch(false);
+    }
+  };
 
   const handleScroll = (event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
@@ -227,7 +264,7 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" style={{ position: 'relative' }}>
+    <View className="flex-1 bg-white" style={{ position: 'relative' }}>
       <Animated.View style={{ 
         position: 'absolute', 
         top: insets.top, 
@@ -243,7 +280,7 @@ export default function Index() {
         }} SearchTerm={searchQuerry}/>
       </Animated.View>
       
-{   searchQuerry  ?   (<ScrollView className="flex-1" onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingTop: 60 }}>
+{   searchQuerry  ?   (<ScrollView className="flex-1" onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingTop: insets.top + 60 }}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -286,16 +323,21 @@ export default function Index() {
           </Text>
         ) : (
           <FlatList
-            data={selectedTag === 'Users' ? users || [] : videos}
+            data={selectedTag === 'Users' ? users || [] : searchVideos}
             showsVerticalScrollIndicator={false}
             keyExtractor={(item) => selectedTag === 'Users' ? item : item.VideoURL}
             renderItem={({ item }) => selectedTag === 'Users' ? <UserContactCardTypeSearch userID={item} /> : <VideoCard {...item} />}
             scrollEnabled={false}
             contentContainerStyle={{ paddingBottom: 100 }}
+            onEndReached={() => selectedTag === 'Videos' && loadMoreSearchVideos()}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={() => 
+              loadingMoreSearch ? <ActivityIndicator size="small" color="black" className="py-4" /> : null
+            }
           />
         )}
       </ScrollView>): (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 60, paddingBottom: 100 }} onScroll={handleTrendingScroll} scrollEventThrottle={16}>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 60, paddingBottom: 100 }} onScroll={handleTrendingScroll} scrollEventThrottle={16}>
           <VideoBanner videos={allTrendingVideos} />
           <View className="px-4 py-3 border-b border-gray-100">
             <Text className="text-xl font-bold text-black">Trending</Text>
@@ -365,6 +407,6 @@ export default function Index() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

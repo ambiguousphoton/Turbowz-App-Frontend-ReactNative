@@ -138,7 +138,8 @@ const VideoPlayer = React.forwardRef<any, Props>(({ videoSource, style, hideProg
   }, [player]);
   
   React.useImperativeHandle(ref, () => ({
-    player
+    player,
+    getCurrentTime: () => currentTime
   }));
 
   useEffect(() => {

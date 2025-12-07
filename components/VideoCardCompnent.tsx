@@ -2,6 +2,7 @@ import {StyleSheet, Text, View, Image, Dimensions, TouchableOpacity, Pressable} 
 import { useLocalSearchParams, router } from 'expo-router'
 import { VideoCardInterface } from '@/interfaces/interfaces'
 import React, { useState, useEffect } from "react";
+import { TagsDisplay } from './TagsDisplay';
 
 
 
@@ -35,7 +36,7 @@ function timeAgo(timestamp: string | number | Date) {
 
 
 
-const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoURL, Date, UploaderID}: VideoCardInterface) =>{
+const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoURL, Date, UploaderID, Tags}: VideoCardInterface) =>{
     const [screenWidth, setScreenWidth] = useState(Dimensions.get("window").width);
     const [isPressed, setIsPressed] = useState(false);
     const [imageError, setImageError] = useState(false);
@@ -110,11 +111,7 @@ const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoUR
                     </View>
                     
                     <View className="flex-row mt-2 items-center justify-between">
-                        <View className="flex-row">
-                            <Text className="text-xs bg-yellow-100 rounded-full px-2  mr-1">com</Text>
-                            <Text className="text-xs bg-pink-100 rounded-full px-2  mr-1">rom</Text>
-                            <Text className="text-xs bg-purple-100 rounded-full px-2 ">sci-fi</Text>
-                        </View>
+                        <TagsDisplay tags={Tags} />
                         <TouchableOpacity 
                             className="p-1"
                             onPress={async () => {

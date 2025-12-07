@@ -7,83 +7,6 @@ import { useAuth } from "@/context/AuthContext";
 import { router,} from "expo-router";
 
 
-export function SignUpComponent() {
-  const [handle, setHandle] = useState("");
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
-  const [location, setLocation] = useState("");
-  const [dob, setDob] = useState("");
-  const [gender, setGender] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [jwt, setJwt] = useState<string | null>(null);
-  const {signInSession} = useAuth();
-  const handleSignUp = async () => {
-    const user: UserSignUpInterface = {
-      user_handle: handle,
-      user_profile_name: name,
-      userDescription: desc,
-      fromLocation: location,
-      userDateOfBirth: dob,
-      gender,
-      email,
-      phoneNumber: phone,
-      password,
-    };
-    try {
-      const { token, userID } = await signUpAccount(user);
-      setJwt(token);
-      await SaveToken("jwt", token);
-      console.log("JWT Stored:", token);
-      console.log("UserID from signup:", userID, typeof userID);
-      const parsedUserID = parseInt(userID);
-      console.log("Parsed UserID:", parsedUserID, typeof parsedUserID);
-      const userData: UserDataInterface = {
-        UserID: parsedUserID,
-        UserHandle: user.user_handle,
-        UserProfileName: user.user_profile_name,
-        UserDescription: user.userDescription,
-        FromLocation: user.fromLocation,
-        Gender: user.gender
-      };
-      console.log("SignUp - userData:", userData);
-      await signInSession(token, userData)
-      router.replace("/")
-    } catch (err) {
-      console.error("Registration failed:", err);
-    }
-  };
-
-  return (
-    <View style={{ padding: 20 }}>
-      <TextInput placeholder="Handle" value={handle} onChangeText={setHandle} />
-      <TextInput placeholder="Name" value={name} onChangeText={setName} />
-      <TextInput placeholder="Description" value={desc} onChangeText={setDesc} />
-      <TextInput placeholder="Location" value={location} onChangeText={setLocation} />
-      <TextInput placeholder="DOB (YYYY-MM-DD)" value={dob} onChangeText={setDob} />
-      <TextInput placeholder="Gender" value={gender} onChangeText={setGender} />
-      <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
-      <TextInput placeholder="Phone" value={phone} onChangeText={setPhone} />
-      <TextInput placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
-
-      <Button title="Sign up" onPress={handleSignUp} />
-
-
-      {name && <Text> {name} </Text>}
-      {jwt && (
-        <Text>JWT Present: {  jwt }</Text>
-      )
-      }
-      {!jwt && (
-
-        <Text>NO JWT</Text>
-    )}
-    </View>
-  );
-}
-
 
 export function SignInComponent() {
   // local input states
@@ -130,61 +53,75 @@ export function SignInComponent() {
   };
 
   return (
-    <View className="w-full">
-      <Text className="px-4 text-lg font-semibold ">Handle</Text>
-      <TextInput 
-        className="px-4 py-2 mb-4 bg-white text-xl rounded-2xl  border-2" 
-        placeholder="Id bta ladle" 
-        placeholderTextColor="#9CA3AF"
-        value={handle} 
-        onChangeText={setHandle} 
-      />
-      <Text className="px-4 text-lg font-semibold ">Password</Text>
-      <TextInput  
-        className="px-4 py-2 mb-4 bg-white text-xl rounded-2xl  border-2" 
-        placeholder="password mat share kario bhai" 
-        placeholderTextColor="#9CA3AF"
-        secureTextEntry 
-        value={password} 
-        onChangeText={setPassword} 
-      />
+    <View className="w-full max-w-md mx-auto bg-white/90 rounded-2xl p-4 sm:p-6" style={{
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5
+    }}>
+      <View className="mb-4 sm:mb-6">
+        <Text className="text-black text-sm sm:text-base font-medium mb-2">Username</Text>
+        <TextInput 
+          className="px-3 sm:px-4 py-3 sm:py-4 bg-white text-base sm:text-lg rounded-xl border border-gray-200" 
+          placeholder="Enter your username" 
+          placeholderTextColor="#9CA3AF"
+          value={handle} 
+          onChangeText={setHandle}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+      
+      <View className="mb-4 sm:mb-6">
+        <Text className="text-black text-sm sm:text-base font-medium mb-2">Password</Text>
+        <TextInput  
+          className="px-3 sm:px-4 py-3 sm:py-4 bg-white text-base sm:text-lg rounded-xl border border-gray-200" 
+          placeholder="Enter your password" 
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry 
+          value={password} 
+          onChangeText={setPassword}
+          autoCapitalize="none"
+        />
+      </View>
       {error ? (
-        <Text className="text-red-500 font-bold text-center mb-4">{error}</Text>
+        <Text className="text-red-500 font-bold text-center mb-3 sm:mb-4 text-sm sm:text-base">{error}</Text>
       ) : null}
       
       <TouchableOpacity 
-        className="bg-wierd rounded-2xl mt-4 py-4 items-center justify-center"
+        className="bg-wierd rounded-xl py-3 sm:py-4 items-center justify-center mb-4 sm:mb-6"
         onPress={handleSignIn}
         style={{
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
-          elevation: 5
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3
         }}
       >
-        <Text className="text-black text-xl font-bold">Sign in</Text>
+        <Text className="text-black text-base sm:text-lg font-semibold">Sign In</Text>
       </TouchableOpacity>
       
-      <View className="h-8" />
-      
-      <Text className="text-white text-center text-lg font-medium mb-3">
-        Don't have an account?
-      </Text>
-      
-      <TouchableOpacity 
-        className="bg-secondary rounded-2xl py-4 items-center justify-center"
-        onPress={() => router.push('/auth/sign-up')}
-        style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
-          elevation: 5
-        }}
-      >
-        <Text className="text-white text-xl font-bold">Sign up</Text>
-      </TouchableOpacity>
+      <View className="items-center">
+        <Text className="text-black text-sm sm:text-base font-medium mb-2 sm:mb-3">
+          Don't have an account?
+        </Text>
+        
+        <TouchableOpacity 
+          className="bg-secondary rounded-xl py-3 sm:py-4 items-center justify-center w-full"
+          onPress={() => router.push('/auth/sign-up')}
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3
+          }}
+        >
+          <Text className="text-white text-base sm:text-lg font-semibold">Sign Up</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

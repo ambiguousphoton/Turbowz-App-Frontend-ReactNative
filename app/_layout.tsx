@@ -21,7 +21,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <WebSocketProvider userID={user?.UserID}>
-        <Stack screenOptions={{ headerShown: false }}/>
+        <Stack screenOptions={{ headerShown: false ,}}/>
       </WebSocketProvider>
     </AuthProvider>
   )

@@ -1,5 +1,5 @@
 import {StyleSheet, Text, View, FlatList, Animated, RefreshControl} from 'react-native'
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocalSearchParams } from 'expo-router'
 import { useSQLiteContext } from 'expo-sqlite'
 import UserContactCard from './UserContactCard'
@@ -38,14 +38,49 @@ const ContactsComponent = ({ shareType, shareId, shareTitle, shareText, shareUrl
     }, [currentUserID])
 
     useEffect(() => {
-        const handleRoomUpdated = () => {
-            console.log("🔄 Room updated, refreshing contacts...");
-            fetchRooms()
+        const handleRoomUpdated = (roomID?: string) => {
+            console.log("🔄 Room updated:", roomID);
+            if (roomID) {
+                updateSingleRoom(roomID)
+            } else {
+                fetchRooms()
+            }
         }
         
         const subscription = dbEvents.addListener('roomUpdated', handleRoomUpdated)
         return () => subscription.remove()
-    }, [])
+    }, [currentUserID])
+
+    const updateSingleRoom = useCallback(async (roomID: string) => {
+        if (!currentUserID) return
+        
+        const roomResult = await db.getFirstAsync(
+            'SELECT * FROM rooms WHERE Room_ID = ?',
+            [roomID]
+        )
+        
+        if (roomResult) {
+            const otherUserID = roomResult.Source_ID === currentUserID ? roomResult.Destination_ID : roomResult.Source_ID
+            
+            const latestMessageResult = await db.getFirstAsync(
+                'SELECT Message_Text, Destination_Receive_Time FROM messages WHERE Room_ID = ? ORDER BY Destination_Receive_Time DESC LIMIT 1',
+                [roomID]
+            )
+            
+            const updatedContact = {
+                userID: otherUserID.toString(),
+                roomID: roomID,
+                latestMessage: latestMessageResult?.Message_Text || '',
+                latestMessageTime: latestMessageResult?.Destination_Receive_Time || '',
+                unreadCount: roomResult.is_read === 0 ? 1 : 0
+            }
+            
+            setContacts(prev => {
+                const filtered = prev.filter(c => c.roomID !== roomID)
+                return [updatedContact, ...filtered]
+            })
+        }
+    }, [currentUserID, db])
 
     const fetchRooms = async (showRefresh = false) => {
         if (!currentUserID) return
@@ -57,16 +92,13 @@ const ContactsComponent = ({ shareType, shareId, shareTitle, shareText, shareUrl
         console.log("🏠 Rooms result:", result);
         if (result.success) {
             const contactsData = await Promise.all(result.data.map(async (room: any) => {
-                // Show the other user, not the current user
                 const otherUserID = room.Source_ID === currentUserID ? room.Destination_ID : room.Source_ID
                 
-                // Get latest message for this room
                 const latestMessageResult = await db.getFirstAsync(
                     'SELECT Message_Text, Destination_Receive_Time FROM messages WHERE Room_ID = ? ORDER BY Destination_Receive_Time DESC LIMIT 1',
                     [room.Room_ID]
                 )
                 
-                // Check if room is unread
                 const roomResult = await db.getFirstAsync(
                     'SELECT is_read FROM rooms WHERE Room_ID = ?',
                     [room.Room_ID]
@@ -83,7 +115,6 @@ const ContactsComponent = ({ shareType, shareId, shareTitle, shareText, shareUrl
             console.log("👥 Contacts data:", contactsData);
             setContacts(contactsData)
             
-            // Animate in the new content
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 300,

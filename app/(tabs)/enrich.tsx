@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VideoEcoCardComponent from '@/components/VideoEcoCardComponent';
 import { EcoCardComponent } from '@/components/EcoCardComponent';
@@ -81,6 +82,7 @@ const fetchRecommendations = async (page: number = 1) => {
 };
 
 export default function Enrich() {
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(1);
   const [allVideos, setAllVideos] = useState<any[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -180,21 +182,21 @@ export default function Enrich() {
   }, [page, loadingMore, hasNextPage]);
 
   if (loading) return (
-    <SafeAreaView className="flex-1 bg-white/90">
-      <Text className="px-6 pt-6">Loading recommendations...</Text>
-    </SafeAreaView>
+    <View className="flex-1 bg-white/90">
+      <Text className="px-6" style={{ paddingTop: insets.top + 24 }}>Loading recommendations...</Text>
+    </View>
   );
   
   if (error) return (
-    <SafeAreaView className="flex-1 bg-white/90">
-      <Text className="px-6 pt-6 text-red-500">Error loading recommendations</Text>
-    </SafeAreaView>
+    <View className="flex-1 bg-white/90">
+      <Text className="px-6 text-red-500" style={{ paddingTop: insets.top + 24 }}>Error loading recommendations</Text>
+    </View>
   );
   
   if (!allVideos.length) return (
-    <SafeAreaView className="flex-1 bg-white/90">
-      <Text className="px-6 pt-6">No recommendations found</Text>
-    </SafeAreaView>
+    <View className="flex-1 bg-white/90">
+      <Text className="px-6" style={{ paddingTop: insets.top + 24 }}>No recommendations found</Text>
+    </View>
   );
 
   const getFilteredData = () => {
@@ -207,8 +209,8 @@ export default function Enrich() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-white">
+      <ScrollView className="flex-1 bg-white" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top }}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -270,6 +272,6 @@ export default function Enrich() {
           }
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -12,6 +12,7 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
     const [loading, setLoading] = useState(true);
     const [profileImageError, setProfileImageError] = useState(false);
     const [currentUserID, setCurrentUserID] = useState<number | null>(null);
+    const [isTurboVerified, setIsTurboVerified] = useState(false);
 
     useEffect(() => {
         const getUserID = async () => {
@@ -25,6 +26,11 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
             .then(setData)
             .catch(() => setData(null))
             .finally(() => setLoading(false));
+
+        fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
+            .then(res => res.json())
+            .then(result => setIsTurboVerified(result.turbomax_active || false))
+            .catch(() => setIsTurboVerified(false));
     }, [userID]);
     if (loading) return (
         <View className="p-4 bg-white ">
@@ -69,7 +75,16 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
                 <Text className="text-base font-semibold" numberOfLines={1}>
                 {data.UserProfileName}
                 </Text>
-                <Text className="ml-4 text-base text-secondary">{data.UserHandle}</Text>
+                <View className="ml-2 flex-row items-center">
+                    <Text className="text-base text-secondary">{data.UserHandle}</Text>
+                    {isTurboVerified && (
+                        <Image 
+                            source={require('../assets/images/TurboVerifiedIcon.png')} 
+                            className="w-4 h-4 ml-1" 
+                            resizeMode="contain" 
+                        />
+                    )}
+                </View>
                 </View>
 
                 

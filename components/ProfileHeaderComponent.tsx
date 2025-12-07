@@ -5,6 +5,7 @@ import { UserDataInterface } from "@/interfaces/interfaces";
 import PrimaryButtonComponent, {SecondaryButtonComponent, DescriptionComponent} from './Buttons';
 import { useRouter } from 'expo-router';
 import { GetUser, GetToken } from '@/HelperFuncs/localStorage';
+import ProfileHeadBanner from './ProfileHeadBanner';
 
 interface ProfileHeaderComponentProps {
     user: UserDataInterface;
@@ -14,7 +15,6 @@ interface ProfileHeaderComponentProps {
 const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, isMyProfile }) => {
     const router = useRouter();
     const [currentUserID, setCurrentUserID] = useState<number | null>(null);
-    const [profileImageError, setProfileImageError] = useState(false);
     const [followInfo, setFollowInfo] = useState<{FollowerCount: number, FolloweeCount: number, AlreadyFollowed: boolean} | null>(null);
     
     useEffect(() => {
@@ -77,7 +77,7 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
     return (
         <View className="bg-white">
         <View className="flex-row items-center justify-between px-4 pt-4">
-        {/* Left Section: Back Button + Username */}
+       
         <View className="flex-row items-center">
             {!isMyProfile && (
                 <TouchableOpacity onPress={() => router.back()} className="mr-3">
@@ -90,11 +90,11 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
             )}
 
             <Text className="font-semibold text-xl " numberOfLines={1}>
-            {user?.UserHandle}
+            @{user?.UserHandle}
             </Text>
         </View>
 
-        {/* Right Section: Settings Icon */}
+    
         {isMyProfile ? (
             <Link href={"/settings/user-options"}>
             <Image
@@ -108,59 +108,21 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
         )}
         </View>
 
-            <View className="px-6"> 
-                <View className="flex-row mt-3"> 
-                    {profileImageError || !user?.UserID ? (
-                        <View className="w-20 h-20 mr-3 rounded-xl bg-primary-25 justify-center items-center">
-                            <Text className="text-primary text-2xl font-semibold">
-                                {user?.UserHandle?.[0]?.toUpperCase() || '?'}
-                            </Text>
-                        </View>
-                    ) : (
-                        <Image 
-                            source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${user?.UserID}` }}
-                            className="w-20 h-20 mr-3 rounded-xl" 
-                            resizeMode="cover" 
-                            onError={() => setProfileImageError(true)}
-                        />
-                    )}
-                    
-                 
-                    <View className='flex-column flex-1 ml-3'>
-                        <View className="flex-row items-center justify-between my-2">
-                            <View className="flex-row items-center">
-                                <Text className=" text-l mr-3">{user?.UserProfileName}</Text>
-                                
-                            </View>
-
-
-                        </View>
-
-                        {user?.UserDescription && (
-                            <Text className="text-gray-600 text-sm">{user.UserDescription}</Text>
-                        )}
-                        
-                        <View className="flex-row my-2">
-                            <Text className="text-gray-500 text-sm mr-10">{followInfo?.FolloweeCount || 0} Following</Text>
-                            <Text className="text-gray-500 text-sm">{followInfo?.FollowerCount || 0} Followers</Text>
-                        </View>
-                    </View>
-                </View>
-            </View>
+            <ProfileHeadBanner user={user} followInfo={followInfo} />
 
 
                 {!isMyProfile ?(
-                <View  className="flex-row gap-2 justify-center my-3 px-6">
+                <View  className="flex-row flex-wrap justify-center my-2 px-6 gap-2">
                 
-                <PrimaryButtonComponent text={followInfo?.AlreadyFollowed ? 'Following' : 'Follow'} onPress={handleFollow} clicked={followInfo?.AlreadyFollowed}/>
-                <SecondaryButtonComponent text='Message' onPress={() => {
+                <View className="w-28"><PrimaryButtonComponent text={followInfo?.AlreadyFollowed ? 'Following' : 'Follow'} onPress={handleFollow} clicked={followInfo?.AlreadyFollowed} fullWidth={false}/></View>
+                <View className="w-28"><SecondaryButtonComponent text='Message' onPress={() => {
                     if (currentUserID) {
                         const roomID = makeDuoRoom(currentUserID.toString(), user.UserID.toString());
                         router.push(`/chats/${user.UserID}?roomID=${roomID}`);
                     }
-                }}/>
+                }} fullWidth={false}/></View>
                 </View>)
-                :<View  className="flex-row gap-2 justify-center my-3 px-6"><SecondaryButtonComponent text='Edit Profile' onPress={() => router.push('/update-profile')}/> </View>}
+                :<View  className="flex-row flex-wrap justify-center my-2 px-6"><SecondaryButtonComponent text='Edit Profile' onPress={() => router.push('/update-profile')} fullWidth={false}/> </View>}
 
 
         </View>

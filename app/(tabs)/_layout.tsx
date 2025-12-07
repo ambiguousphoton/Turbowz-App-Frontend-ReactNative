@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/AuthContext'
 import {Redirect, Tabs} from 'expo-router'
-import { ImageBackground, Image, Text, View, TouchableOpacity } from 'react-native'
+import { ImageBackground, Image, Text, View, TouchableOpacity, SafeAreaView } from 'react-native'
 import { useState } from 'react'
 import CreateBottomSheet from '@/components/CreateBottomSheet'
 
@@ -9,7 +9,7 @@ const TabIcon = ({focused, icon, title, onPress} :any) => {
     const Component = onPress ? TouchableOpacity : View;
     return (
         <Component 
-            style={{width: 40, height: 40, borderRadius: 20}} 
+            style={{width: 60, height: 40, borderRadius: 20}} 
             className={`mt-4 justify-center items-center ${
                 focused ? 'bg-white ' : 'bg-transparent'
             }`}
@@ -33,26 +33,26 @@ export default function RootLayout() {
   
   
     return (
-    <>
+    <SafeAreaView style={{ flex: 1 }}>
     <Tabs 
       backBehavior="none"
-      screenOptions={{tabBarShowLabel: false,
+      screenOptions={{
+        tabBarShowLabel: false,
             tabBarItemStyle: {
+                // borderTopWidth:1,
                 width: 60,
-                height:90,
+                height: 70,
+                // paddingTop: 10,
                 justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: "#DBFCFF",  // 👈 set your own background (important!)
-                borderTopWidth: 0,          // 👈 your custom border
-                borderTopColor: "black",
+                // borderTopWidth: 0,          // 👈 your custom border
+                // borderTopColor: "black",
             },
             tabBarStyle:{
                overflow:'hidden',
-               position:'absolute',        
-               borderTopWidth: 0,       
-            //    borderTopColor: 'white',
-               height: 79,
-
+               borderTopWidth: 0,
+                // elevation: 0,
             },
 
     }} >
@@ -132,6 +132,6 @@ export default function RootLayout() {
         visible={showCreateSheet} 
         onClose={() => setShowCreateSheet(false)} 
     />
-    </>
+    </SafeAreaView>
   )
 }

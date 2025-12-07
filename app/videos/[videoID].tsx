@@ -15,6 +15,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import SimilarVideoRecommendationComponent from "@/components/SimilarVideoRecommendationComponent";
 import { StatusBar } from "expo-status-bar";
 import { GetUser } from "@/HelperFuncs/localStorage";
+import { TimestampCopyButton } from '@/components/TimestampCopyButton';
      
 export default function VideoPage() {
   const { videoID, VideoURL } = useLocalSearchParams(); // id matches [id].tsx
@@ -30,6 +31,8 @@ export default function VideoPage() {
   const [currentUserID, setCurrentUserID] = useState<number | null>(null);
   const [followInfo, setFollowInfo] = useState<{FollowerCount: number, FolloweeCount: number, AlreadyFollowed: boolean} | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isTurboVerified, setIsTurboVerified] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const luvAnimScale = useRef(new Animated.Value(1)).current;
   const shareAnimScale = useRef(new Animated.Value(1)).current;
   const promoteAnimScale = useRef(new Animated.Value(1)).current;
@@ -111,6 +114,15 @@ export default function VideoPage() {
   }, [currentUserID, vmd?.Uploader_ID]);
 
   useEffect(() => {
+    if (vmd?.Uploader_ID) {
+      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${vmd.Uploader_ID}`)
+        .then(res => res.json())
+        .then(result => setIsTurboVerified(result.turbomax_active || false))
+        .catch(() => setIsTurboVerified(false));
+    }
+  }, [vmd?.Uploader_ID]);
+
+  useEffect(() => {
     const updateView = async () => {
       try {
         const userData = await GetUser();
@@ -190,13 +202,19 @@ export default function VideoPage() {
       </View>
       <GestureHandlerRootView>
       
-      <VideoPlayer 
-        ref={videoPlayerRef}
-        key={VideoURL}
-        videoSource={videoSource}
-        style={{ width: "100%", height: 250, backgroundColor: "black" }}
-        hideProgressBar={isOpen}
-      />
+      <View className="relative">
+        <VideoPlayer 
+          ref={videoPlayerRef}
+          key={VideoURL}
+          videoSource={videoSource}
+          style={{ width: "100%", height: 250, backgroundColor: "black" }}
+          hideProgressBar={isOpen}
+        />
+        <TimestampCopyButton 
+          getCurrentTime={() => videoPlayerRef.current?.getCurrentTime?.() || 0}
+          videoTitle={vmd?.Title}
+        />
+      </View>
       <ScrollView className="bg-white" showsVerticalScrollIndicator={false}>
         <View className="flex-row items-start mx-2 my-3">
           <Text 
@@ -294,27 +312,13 @@ export default function VideoPage() {
             >
               <Image source={isSaved ? require("../../assets/images/SavedIcon.png") : require("../../assets/images/SaveIcon.png")} className="w-6 h-6" resizeMode="contain"/>
             </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-gray-100 p-2 rounded-xl flex-row items-center"
-              onPress={() => animateButton(promoteAnimScale)}
-            >
-              <Animated.View style={{ transform: [{ scale: promoteAnimScale }] }}>
-                <Image source={require("../../assets/images/PromoteIcon.png")} className="w-6 h-6" resizeMode="contain"/>
-              </Animated.View>
-            </TouchableOpacity>
+
           </View>
         </View>
         <Text className="text-gray-500 text-xs mx-2 mb-3">{timeAgo(vmd?.Upload_Time)} | {vmd?.Views} Views </Text>
         
         <View className="flex-row items-center py-2 mx-2 mb-3">
-          {/* <Image 
-                      source={{ uri: `http://10.0.2.2:8088/i?img=${VideoURL}` }}
-                      className="w-full bg-gray-200 rounded-lg"
-                      style={{ aspectRatio: 16/9 }}
-                      resizeMode="cover"
-                      
-                    /> */}
-         
+
           {profileImageError || !vmd?.Uploader_ID ? (
             <View className="w-10 h-10 mr-3 rounded-xl bg-primary-25 justify-center items-center">
               <Text className="text-primary text-sm font-semibold">
@@ -342,9 +346,18 @@ export default function VideoPage() {
             <Text className="text-black text-base font-medium">
               {vmd?.Uploader_Name}
             </Text>
-            <Text className="text-secondary text-sm">
-              {vmd?.Uploader_Handle}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className="text-secondary text-sm">
+                {vmd?.Uploader_Handle}
+              </Text>
+              {isTurboVerified && (
+                <Image 
+                  source={require('../../assets/images/TurboVerifiedIcon.png')} 
+                  className="w-4 h-4 ml-1" 
+                  resizeMode="contain" 
+                />
+              )}
+            </View>
           </TouchableOpacity>
           {currentUserID !== vmd?.Uploader_ID && (
             <View className="w-24 h-10">
@@ -352,24 +365,55 @@ export default function VideoPage() {
             </View>
           )}
         </View>
-          <ScrollView horizontal className="flex-row px-2 mb-3" showsHorizontalScrollIndicator={false}>
-              
-
-
-
-          </ScrollView>
-<DescriptionComponent description={vmd?.Video_Info}/>
-            <TouchableOpacity 
-          className="bg-gray-100 rounded-xl mb-3 justify-center items-center py-1 flex-1 mx-2"
+      {((vmd?.Tags && vmd.Tags.length > 0) || vmd?.Video_Info) && (
+        <View className="px-2 mb-3">
+          <TouchableOpacity onPress={() => setShowMore(!showMore)} className="flex-row items-center">
+            <Image 
+              source={require('../../assets/images/backIcon.png')} 
+              className="w-3 h-3 mr-1" 
+              style={{ transform: [{ rotate: showMore ? '270deg' : '180deg' }] }}
+            />
+            <Text className="text-gray-500 text-xs">More</Text>
+          </TouchableOpacity>
+          {showMore && (
+            <View className="mt-2">
+              {vmd?.Video_Info && (
+                <View className="mb-2">
+                  <Text className="text-gray-700 text-xs font-semibold mb-1">Description</Text>
+                  <Text className="text-gray-600 text-sm">{vmd.Video_Info}</Text>
+                </View>
+              )}
+              {vmd?.Tags && vmd.Tags.length > 0 && (
+                <View>
+                  <Text className="text-gray-700 text-xs font-semibold mb-1">Tags</Text>
+                  <View className="flex-row flex-wrap">
+                    {vmd.Tags.map((tag, index) => (
+                      <Text key={index} className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mr-1 mb-1">
+                        {tag}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+      
+      <View className="flex-row mb-3 mx-2 gap-2">
+        <TouchableOpacity 
+          className="bg-gray-100 rounded-xl justify-center items-center py-1 flex-1"
           onPress={() => {
             animateButton(commentsAnimScale);
             handleOpenPressComments();
           }}
-      >
+        >
           <Animated.View style={{ transform: [{ scale: commentsAnimScale }] }}>
-            <Text className="text- py-2 font-semibold">Comments</Text>
+            <Text className="text-black py-2 font-semibold">Comments</Text>
           </Animated.View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+
+      </View>
       
       <SimilarVideoRecommendationComponent videoID={+videoID} />
       
@@ -413,6 +457,12 @@ export default function VideoPage() {
                     <CommentSectionComponent 
                       videoID={+videoID} 
                       onRefresh={(refreshFn) => { refreshRef.current = refreshFn; }} 
+                      onTimestampPress={(seconds) => {
+                        if (videoPlayerRef.current?.player) {
+                          videoPlayerRef.current.player.currentTime = seconds;
+                          setIsOpen(false);
+                        }
+                      }}
                     />
 
 

@@ -6,6 +6,7 @@ import { UserDataInterface } from "@/interfaces/interfaces";
 import TabHeaderComponent from "./TabHeaderComponent";
 import { EcoRoute } from "./ProfileTabs/EcoRouteComponent";
 import { ActivitiesRoute } from "./ProfileTabs/ActivitiesRouteComponent";
+import { ShopRoute } from "./ProfileTabs/ShopRouteComponent";
 
 interface ProfileTabsComponentProps {
     user: UserDataInterface;
@@ -15,7 +16,7 @@ interface ProfileTabsComponentProps {
 export default function ProfileTabsComponent({ user, isMyProfile }: ProfileTabsComponentProps) {
     const userID = user.UserID;
     const [activeTab, setActiveTab] = useState(0);
-    const tabs = isMyProfile ? ['Ecos', 'Videos', 'Activities'] : ['Ecos', 'Videos'];
+    const tabs = isMyProfile ? ['Ecos', 'Videos', 'Activities','Shop'] : ['Ecos', 'Videos', 'Shop'];
 
     const handleTabPress = (index: number) => {
         setActiveTab(index);
@@ -30,6 +31,8 @@ export default function ProfileTabsComponent({ user, isMyProfile }: ProfileTabsC
                     return <PostsRoute userID={userID} />;
                 case 2:
                     return <ActivitiesRoute userID={userID} />;
+                case 3:
+                    return <ShopRoute userID={userID} />;   
                 default:
                     return <EcoRoute userID={userID} />;
             }
@@ -39,6 +42,8 @@ export default function ProfileTabsComponent({ user, isMyProfile }: ProfileTabsC
                     return <EcoRoute userID={userID} />;
                 case 1:
                     return <PostsRoute userID={userID} />;
+                case 2:
+                    return <ShopRoute userID={userID} />;
                 default:
                     return <EcoRoute userID={userID} />;
             }
