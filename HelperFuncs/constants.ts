@@ -1,0 +1,21 @@
+export const ALLOWED_TAGS = [
+  { label: "Learning", value: "learn", color: "bg-blue-100 text-gray-700" },
+  { label: "Video Games", value: "vgames", color: "bg-green-100 text-gray-700" },
+  { label: "Anime", value: "anim", color: "bg-purple-100 text-gray-700" },
+  { label: "Cartoons", value: "toon", color: "bg-yellow-100 text-gray-700" },
+  { label: "Comedy", value: "com", color: "bg-pink-100 text-gray-700" },
+  { label: "Science", value: "sci", color: "bg-cyan-100 text-gray-700" },
+  { label: "Music", value: "music", color: "bg-indigo-100 text-gray-700" },
+  { label: "Action", value: "act", color: "bg-red-100 text-gray-700"},
+  { label: "Adventure", value: "adven", color: "bg-teal-100 text-gray-700" },
+  { label: "Culture", value: "cultr", color: "bg-orange-100 text-gray-700" },
+  { label: "Movies", value: "movi", color: "bg-slate-100 text-gray-700" },
+  { label: "Romance", value: "rom", color: "bg-rose-100 text-gray-700" },
+  { label: "Horror", value: "horr", color: "bg-gray-900 text-white" },
+  { label: "Religious", value: "relig", color: "bg-amber-100 text-gray-700" },
+  { label: "Kids shows", value: "kids", color: "bg-lime-100 text-gray-700" },
+  { label: "Story", value: "story", color: "bg-violet-100 text-gray-700" },
+  { label: "Fiction", value: "fictn", color: "bg-fuchsia-100 text-gray-700" },
+  { label: "History", value: "hstry", color: "bg-stone-100 text-gray-700" },
+  { label: "Education", value: "edu", color: "bg-emerald-100 text-gray-700" }
+];
