@@ -1,50 +1,127 @@
-# Welcome to your Expo app 👋
+# Turbowz — Frontend Service
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform social media mobile application built with React Native and Expo. Turbowz lets users share videos, create eco-posts, chat in real-time, discover content, and connect with other users.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Video Sharing** — Upload, watch, and interact with videos (luv, comment, save, share)
+- **Eco Posts** — Create and browse text/image-based posts with voting and comments
+- **Real-time Chat** — WebSocket-powered messaging with local SQLite persistence
+- **Content Discovery** — Search for videos and users, explore content by tags, view watch history
+- **Events** — Create and browse community events
+- **User Profiles** — Customizable profiles with followers/following, activity heatmaps, and profile tabs (posts, ecos, shop, activities)
+- **Authentication** — JWT-based sign-up/sign-in with secure token storage
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+| Layer | Technology |
+|---|---|
+| Framework | [Expo](https://expo.dev) (SDK 53) / React Native 0.79 |
+| Routing | [Expo Router](https://docs.expo.dev/router/introduction/) (file-based) |
+| Styling | [NativeWind](https://www.nativewind.dev/) (Tailwind CSS for RN) |
+| State | React Context (Auth, WebSocket) |
+| Storage | [expo-secure-store](https://docs.expo.dev/versions/latest/sdk/securestore/) (tokens), [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) (messages) |
+| Real-time | WebSocket (auto-reconnect) |
+| JS Engine | Hermes (New Architecture enabled) |
+| 3D | Three.js via expo-three |
 
-   ```bash
-   npx expo start
-   ```
+## Project Structure
 
-In the output, you'll find options to open the app in a
+```
+app/
+├── (tabs)/              # Bottom tab navigator
+│   ├── enrich.tsx       # Content discovery / explore feed
+│   ├── index/           # Home feed (videos)
+│   ├── create.tsx       # Create content (bottom sheet trigger)
+│   ├── chats.tsx        # Chat list
+│   └── myprofile.tsx    # Current user profile
+├── auth/                # Welcome, sign-in, sign-up screens
+├── videos/[videoID].tsx # Video detail & player
+├── ecos/[ecoID].tsx     # Eco post detail
+├── events/[eventID].tsx # Event detail
+├── chats/[userID].tsx   # Chat conversation
+├── search/              # Search screen
+├── share/               # Share content screen
+├── settings/            # User settings
+├── create-video.tsx     # Video upload flow
+├── create-eco.tsx       # Eco post upload flow
+├── create-event.tsx     # Event creation flow
+├── update-profile.tsx   # Edit profile
+├── followers.tsx        # Followers list
+├── following.tsx        # Following list
+├── history.tsx          # Watch history
+└── saved.tsx            # Saved content
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+components/              # Reusable UI components
+Services/                # API service functions
+HelperFuncs/             # Utilities (localStorage, time, constants, message storage)
+context/                 # React Context providers (Auth, WebSocket)
+interfaces/              # TypeScript interfaces
+assets/                  # Images, fonts, 3D objects
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+### Prerequisites
 
-To learn more about developing your project with Expo, look at the following resources:
+- [Node.js](https://nodejs.org/) (LTS)
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- For native builds: Xcode (iOS) / Android Studio (Android)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Installation
 
-## Join the community
+```bash
+npm install
+```
 
-Join our community of developers creating universal apps.
+### Running the App
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+# Start the Expo dev server
+npx expo start
+
+# Platform-specific
+npx expo run:ios
+npx expo run:android
+npx expo start --web
+```
+
+### Development Build
+
+This project uses a [development build](https://docs.expo.dev/develop/development-builds/introduction/) with native modules (expo-sqlite, expo-secure-store, expo-video, etc.) that require a custom native runtime rather than Expo Go.
+
+```bash
+# Build for internal distribution
+eas build --profile development --platform ios
+eas build --profile development --platform android
+```
+
+### Environment
+
+Create a `.env` file in the project root with your backend service URLs. The app currently expects the following backend services:
+
+| Service | Default Port | Purpose |
+|---|---|---|
+| Video Metadata | 7999 | Video details API |
+| Search | 8082 | Video search |
+| User Service | 8100 | Auth, user search, profiles |
+| WebSocket | 8280 | Real-time messaging |
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm start` | Start Expo dev server |
+| `npm run ios` | Run on iOS |
+| `npm run android` | Run on Android |
+| `npm run web` | Run on web |
+| `npm run lint` | Run ESLint |
+| `npm run reset-project` | Reset to blank app directory |
+
+## Content Tags
+
+Videos and ecos can be tagged with categories: Learning, Video Games, Anime, Cartoons, Comedy, Science, Music, Action, Adventure, Culture, Movies, Romance, Horror, Religious, Kids Shows, Story, Fiction, History, Education.
+
+## License
+
+Private project.
