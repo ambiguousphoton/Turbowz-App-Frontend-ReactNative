@@ -229,6 +229,53 @@ export default function Enrich() {
     return allVideos;
   };
 
+  const filterBar = (
+    <View className="absolute left-0 right-0 flex-row justify-between items-center px-4 z-10" style={{ top: insets.top + 12 }}>
+      <View className="flex-row rounded-2xl p-0.5" style={{ backgroundColor: selectedFilter === 'Go Turbo' ? 'rgba(0,0,0,0.5)' : 'rgba(255, 255, 255, 0.9)' }}>
+        {filters.map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            onPress={() => setSelectedFilter(filter)}
+            className={`px-3 py-2 mx-0.5 rounded-xl ${
+              selectedFilter === filter 
+                ? 'bg-black' 
+                : 'bg-transparent'
+            }`}
+          >
+            <Text className={`text-sm font-medium ${
+              selectedFilter === filter 
+                ? 'text-white' 
+                : selectedFilter === 'Go Turbo' ? 'text-gray-300' : 'text-gray-500'
+            }`}>
+              {filter}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      <TouchableOpacity
+        onPress={() => router.push('/search/Search')}
+        className="p-2 rounded-full"
+      >
+        <Image
+          source={require('../../assets/images/searchIcon.png')}
+          className="w-6 h-6"
+          resizeMode="contain"
+          style={selectedFilter === 'Go Turbo' ? { tintColor: 'white' } : undefined}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (selectedFilter === 'Go Turbo') {
+    return (
+      <View className="flex-1 bg-black">
+        <GoTurboSection />
+        {filterBar}
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-white">
       <ScrollView 
@@ -243,87 +290,45 @@ export default function Enrich() {
           />
         }
       >
-        {selectedFilter === 'Go Turbo' ? (
-          <GoTurboSection 
-            data={getFilteredData()}
-            onEndReached={loadMore}
-            loadingMore={loadingMore}
-          />
-        ) : (
-          <FlatList
-            data={getFilteredData()}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => `${item.type}-${item.type === 'video' ? item.Video_ID : item.type === 'ad' ? item.ad_id : item.Eco_Id}-${index}`}
-            renderItem={({ item }) => {
-              if (item.type === 'video') {
-                return (
-                  <VideoEcoCardComponent 
-                    VideoURL={item.Video_Url}
-                    Title={item.Title}
-                    Views={item.Views}
-                    Upload_Time={item.Upload_Time}
-                    Uploader_Name={item.Uploader_Name}
-                    Video_ID={item.Video_ID}
-                    Uploader_ID={item.Uploader_ID}
-                    Uploader_Handle={item.Uploader_Handle}
-                  />
-                );
-              } else if (item.type === 'ad') {
-                return (
-                  <BannerAdComponent 
-                    ad_id={item.ad_id}
-                    title={item.title}
-                    redirect_url={item.redirect_url}
-                  />
-                );
-              } else {
-                return <EcoCardComponent item={item} />;
-              }
-            }}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={() => 
-              loadingMore ? <ActivityIndicator size="small" color="black" className="py-4" /> : null
+        <FlatList
+          data={getFilteredData()}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.type}-${item.type === 'video' ? item.Video_ID : item.type === 'ad' ? item.ad_id : item.Eco_Id}-${index}`}
+          renderItem={({ item }) => {
+            if (item.type === 'video') {
+              return (
+                <VideoEcoCardComponent 
+                  VideoURL={item.Video_Url}
+                  Title={item.Title}
+                  Views={item.Views}
+                  Upload_Time={item.Upload_Time}
+                  Uploader_Name={item.Uploader_Name}
+                  Video_ID={item.Video_ID}
+                  Uploader_ID={item.Uploader_ID}
+                  Uploader_Handle={item.Uploader_Handle}
+                />
+              );
+            } else if (item.type === 'ad') {
+              return (
+                <BannerAdComponent 
+                  ad_id={item.ad_id}
+                  title={item.title}
+                  redirect_url={item.redirect_url}
+                />
+              );
+            } else {
+              return <EcoCardComponent item={item} />;
             }
-          />
-        )}
+          }}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => 
+            loadingMore ? <ActivityIndicator size="small" color="black" className="py-4" /> : null
+          }
+        />
       </ScrollView>
-      
-      <View className="absolute left-0 right-0 flex-row justify-between items-center px-4" style={{ top: insets.top + 12 }}>
-        <View className="flex-row rounded-2xl p-0.5" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
-          {filters.map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              onPress={() => setSelectedFilter(filter)}
-              className={`px-3 py-2 mx-0.5 rounded-xl ${
-                selectedFilter === filter 
-                  ? 'bg-black' 
-                  : 'bg-transparent'
-              }`}
-            >
-              <Text className={`text-sm font-medium ${
-                selectedFilter === filter 
-                  ? 'text-white' 
-                  : 'text-gray-500'
-              }`}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        
-        <TouchableOpacity
-          onPress={() => router.push('/search/Search')}
-          className="p-2 rounded-full"
-        >
-          <Image
-            source={require('../../assets/images/searchIcon.png')}
-            className="w-6 h-6"
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </View>
+      {filterBar}
     </View>
   );
 }
