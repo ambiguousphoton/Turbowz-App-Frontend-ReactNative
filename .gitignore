@@ -45,3 +45,4 @@ yarn-error.*
 *.pdf
 *.png~
 app-example
+*.mp4
