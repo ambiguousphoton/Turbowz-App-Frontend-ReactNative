@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image } from 'react-native';
+import { imageUrl } from '@/Services/api/imageService';
 
 interface VideoBannerProps {
   videos: any[];
@@ -23,7 +24,7 @@ const VideoBanner: React.FC<VideoBannerProps> = ({ videos }) => {
     <View className="mx-4 mb-4 rounded-xl bg-white shadow-lg overflow-hidden">
       <View className="relative">
           <Image 
-            source={{ uri: `http://10.0.2.2:8088/i?img=${videos[bannerIndex]?.Video_Url}` }} 
+            source={{ uri: imageUrl(videos[bannerIndex]?.Video_Url) }} 
             className="w-full h-40"
             resizeMode="cover"
           />

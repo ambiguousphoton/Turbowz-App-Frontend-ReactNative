@@ -6,6 +6,9 @@ import { Link } from 'expo-router';
 import { UserDataInterface } from '@/interfaces/interfaces';
 import ConnectionRequestButton from './connectionRequestButton';
 import { GetUser, GetToken } from '@/HelperFuncs/localStorage';
+import { getUser, getTurbomaxStatus } from '@/Services/api/userService';
+import { getFollowingInfo, follow, unfollow } from '@/Services/api/followService';
+import { pfpUrl } from '@/Services/api/imageService';
 
 const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
     const [data, setData] = useState<UserDataInterface | null>(null);
@@ -22,23 +25,20 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
             
             // Fetch follow info after getting current user
             if (localUser?.UserID) {
-                fetch(`http://10.0.2.2:8010/get-following-info?userID=${userID}&requesterID=${localUser.UserID}`)
-                    .then(res => res.json())
+                getFollowingInfo(userID, localUser.UserID)
                     .then(setFollowInfo)
                     .catch(() => setFollowInfo(null));
             }
         };
         getUserID();
         
-        fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`)
-            .then(res => res.json())
+        getUser(userID)
             .then(setData)
             .catch(() => setData(null))
             .finally(() => setLoading(false));
 
-        fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
-            .then(res => res.json())
-            .then(result => setIsTurboVerified(result.turbomax_active || false))
+        getTurbomaxStatus(userID)
+            .then(setIsTurboVerified)
             .catch(() => setIsTurboVerified(false));
     }, [userID]);
     if (loading) return (
@@ -57,18 +57,10 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
         try {
             const authToken = await GetToken('jwt');
             const isUnfollow = followInfo?.AlreadyFollowed;
-            const endpoint = isUnfollow ? 'http://10.0.2.2:8010/unfollow' : 'http://10.0.2.2:8010/follow';
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': authToken || ''
-                },
-                body: `followeeID=${userID}`
-            });
-            
-            if (response.ok) {
+            const success = isUnfollow
+                ? await unfollow(authToken || '', userID)
+                : await follow(authToken || '', userID);
+            if (success) {
                 setFollowInfo(prev => prev ? {
                     ...prev, 
                     AlreadyFollowed: !prev.AlreadyFollowed, 
@@ -100,7 +92,7 @@ const UserContactCardTypeSearch = ({userID}:{userID :string}) =>{
                     </View>
                 ) : (
                     <Image 
-                        source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${userID}` }} 
+                        source={{ uri: pfpUrl(userID) }} 
                         className="w-12 h-12 rounded-full" 
                         resizeMode="cover" 
                         onError={() => setProfileImageError(true)}

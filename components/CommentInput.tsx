@@ -2,6 +2,7 @@ import { GetToken } from "@/HelperFuncs/localStorage";
 import React, { useState, useEffect } from "react";
 import { View, TextInput, KeyboardAvoidingView, Alert, Platform, TouchableOpacity, Image, Animated, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { pushComment } from "@/Services/api/commentService";
 
 export default function CommentInputComponent({ videoID, onCommentAdded, parentCommentID }: { videoID: number; onCommentAdded?: () => void; parentCommentID?: number }) {
     const [text, setText] = useState("");
@@ -35,16 +36,7 @@ export default function CommentInputComponent({ videoID, onCommentAdded, parentC
                 return;
             }
 
-            const body = `parentVideoID=${videoID}&commentText=${encodeURIComponent(text)}&hasContextFlag=${hasContextFlag}${parentCommentID ? `&parentCommentID=${parentCommentID}` : ''}`;
-
-            const response = await fetch("http://10.0.2.2:7200/push-comment", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": token
-                },
-                body: body,
-            });
+            const response = await pushComment(token, videoID, text, hasContextFlag, parentCommentID);
 
             const responseText = await response.text();
 

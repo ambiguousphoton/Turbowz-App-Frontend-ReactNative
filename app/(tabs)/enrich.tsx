@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, ActivityIndicator, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import VideoEcoCardComponent from '@/components/VideoEcoCardComponent';
 import { EcoCardComponent } from '@/components/EcoCardComponent';
 import BannerAdComponent from '@/components/BannerAdComponent';
@@ -9,6 +8,8 @@ import GoTurboSection from '@/components/GoTurboSection';
 import useFetch from '@/Services/useFetch';
 import { GetUser } from '@/HelperFuncs/localStorage';
 import { useRouter } from 'expo-router';
+import { recommendVideosForUser, recommendEcosForUser } from '@/Services/api/recommendService';
+import { getBannerAds } from '@/Services/api/adsService';
 
 
 const fetchRecommendations = async (page: number = 1) => {
@@ -16,14 +17,14 @@ const fetchRecommendations = async (page: number = 1) => {
   const userId = user?.UserID || 27;
   
   try {
-    const videosResponse = await fetch(`http://10.0.2.2:8007/recommend-videos-for-user?user_id=${userId}&page=${page}&limit=5`);
-    const ecosResponse = await fetch(`http://10.0.2.2:8007/recommend-ecos?user_id=${userId}&page=${page}&limit=5`);
+    const videosResponse = await recommendVideosForUser(userId, page, 5);
+    const ecosResponse = await recommendEcosForUser(userId, page, 5);
     
-    const adsResponse = await fetch(`http://10.0.2.2:8991/get-b-ads?page=1&limit=10`);
+    const adsResponse = await getBannerAds(1, 10);
     
-    const videos = videosResponse.ok ? await videosResponse.json() : null;
-    const ecos = ecosResponse.ok ? await ecosResponse.json() : null;
-    const ads = adsResponse.ok ? await adsResponse.json() : null;
+    const videos = videosResponse;
+    const ecos = ecosResponse;
+    const ads = adsResponse;
     
     const videoResults = Array.isArray(videos) ? videos : (videos?.results || videos?.data || []);
     const ecoResults = Array.isArray(ecos) ? ecos : (ecos?.results || ecos?.data || []);
@@ -31,28 +32,24 @@ const fetchRecommendations = async (page: number = 1) => {
     
     const mixedResults = [];
     
-    // Add videos
     if (Array.isArray(videoResults)) {
       videoResults.forEach(video => {
         mixedResults.push({ ...video, type: 'video' });
       });
     }
     
-    // Add ecos
     if (Array.isArray(ecoResults)) {
       ecoResults.forEach(eco => {
         mixedResults.push({ ...eco, type: 'eco' });
       });
     }
     
-    // Add ads
     if (Array.isArray(adResults)) {
       adResults.forEach(ad => {
         mixedResults.push({ ...ad, type: 'ad' });
       });
     }
     
-    // Shuffle content randomly
     const adsOnly = mixedResults.filter(item => item.type === 'ad');
     const contentOnly = mixedResults.filter(item => item.type !== 'ad');
     
@@ -93,16 +90,13 @@ export default function Enrich() {
         }) === index
       );
       
-      // Set up global ad pool
       const ads = videos.ads || [];
       setGlobalAdPool(ads);
       globalAdIndexRef.current = 0;
       
-      // Insert ads every 5 items
       const finalResults = [];
       
       for (let i = 0; i < uniqueVideos.length; i++) {
-        // Add ad at position 0 and every 5 items
         if (i % 5 === 0 && ads.length > 0) {
           const adToInsert = ads[globalAdIndexRef.current % ads.length];
           finalResults.push(adToInsert);
@@ -148,7 +142,6 @@ export default function Enrich() {
         setHasNextPage(newData.results.length > 0);
       }
     } catch (err) {
-      // Error refreshing data
     } finally {
       setRefreshing(false);
     }
@@ -170,7 +163,6 @@ export default function Enrich() {
             }) === index
           );
           
-          // Insert ads into new content using global ad pool
           const finalNewContent = [];
           const ads = globalAdPool.length > 0 ? globalAdPool : (newData.ads || []);
           const currentLength = prev.length;
@@ -193,28 +185,79 @@ export default function Enrich() {
         setHasNextPage(false);
       }
     } catch (err) {
-      // Error loading more recommendations
       setHasNextPage(false);
     } finally {
       setLoadingMore(false);
     }
   }, [page, loadingMore, hasNextPage]);
 
+  const isGoTurbo = selectedFilter === 'Go Turbo';
+
+  const FilterBar = () => (
+    <View
+      className={`flex-row items-center justify-between px-4 pb-3 ${isGoTurbo ? 'bg-black' : 'bg-white'}`}
+      style={{ paddingTop: insets.top + 8 }}
+    >
+      <View className="flex-row flex-1 mr-3">
+        {filters.map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            onPress={() => setSelectedFilter(filter)}
+            className={`px-3.5 py-2 mr-2 rounded-xl ${
+              selectedFilter === filter
+                ? isGoTurbo ? 'bg-white' : 'bg-black'
+                : isGoTurbo ? 'bg-white/10' : 'bg-gray-100'
+            }`}
+          >
+            <Text className={`text-sm font-medium ${
+              selectedFilter === filter
+                ? isGoTurbo ? 'text-black' : 'text-white'
+                : isGoTurbo ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {filter}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <TouchableOpacity
+        onPress={() => router.push('/search/Search')}
+        className="p-2"
+      >
+        <Image
+          source={require('../../assets/images/searchIcon.png')}
+          className="w-6 h-6"
+          resizeMode="contain"
+          style={isGoTurbo ? { tintColor: 'white' } : undefined}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) return (
-    <View className="flex-1 bg-white/90">
-      <Text className="px-6" style={{ paddingTop: insets.top + 24 }}>Loading recommendations...</Text>
+    <View className="flex-1 bg-white">
+      <FilterBar />
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="small" color="#000" />
+        <Text className="text-gray-500 mt-2 text-sm">Loading recommendations...</Text>
+      </View>
     </View>
   );
   
   if (error) return (
-    <View className="flex-1 bg-white/90">
-      <Text className="px-6 text-red-500" style={{ paddingTop: insets.top + 24 }}>Error loading recommendations</Text>
+    <View className="flex-1 bg-white">
+      <FilterBar />
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-red-500">Error loading recommendations</Text>
+      </View>
     </View>
   );
   
   if (!allVideos.length) return (
-    <View className="flex-1 bg-white/90">
-      <Text className="px-6" style={{ paddingTop: insets.top + 24 }}>No recommendations found</Text>
+    <View className="flex-1 bg-white">
+      <FilterBar />
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-gray-500">No recommendations found</Text>
+      </View>
     </View>
   );
 
@@ -229,59 +272,21 @@ export default function Enrich() {
     return allVideos;
   };
 
-  const filterBar = (
-    <View className="absolute left-0 right-0 flex-row justify-between items-center px-4 z-10" style={{ top: insets.top + 12 }}>
-      <View className="flex-row rounded-2xl p-0.5" style={{ backgroundColor: selectedFilter === 'Go Turbo' ? 'rgba(0,0,0,0.5)' : 'rgba(255, 255, 255, 0.9)' }}>
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            onPress={() => setSelectedFilter(filter)}
-            className={`px-3 py-2 mx-0.5 rounded-xl ${
-              selectedFilter === filter 
-                ? 'bg-black' 
-                : 'bg-transparent'
-            }`}
-          >
-            <Text className={`text-sm font-medium ${
-              selectedFilter === filter 
-                ? 'text-white' 
-                : selectedFilter === 'Go Turbo' ? 'text-gray-300' : 'text-gray-500'
-            }`}>
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      
-      <TouchableOpacity
-        onPress={() => router.push('/search/Search')}
-        className="p-2 rounded-full"
-      >
-        <Image
-          source={require('../../assets/images/searchIcon.png')}
-          className="w-6 h-6"
-          resizeMode="contain"
-          style={selectedFilter === 'Go Turbo' ? { tintColor: 'white' } : undefined}
-        />
-      </TouchableOpacity>
-    </View>
-  );
-
   if (selectedFilter === 'Go Turbo') {
     return (
       <View className="flex-1 bg-black">
+        <FilterBar />
         <GoTurboSection />
-        {filterBar}
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-white">
+      <FilterBar />
       <ScrollView 
-        className="flex-1 bg-white" 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingTop: 80 }}
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -328,7 +333,6 @@ export default function Enrich() {
           }
         />
       </ScrollView>
-      {filterBar}
     </View>
   );
 }

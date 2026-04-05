@@ -22,18 +22,20 @@ const CreateEco = () => {
     }, []);
 
     return (
-        <SafeAreaView className='flex-1 bg-primary-25'>
-            <View className='px-6 py-4 flex-row items-center bg-white shadow-sm'>
-                <TouchableOpacity onPress={() => router.back()} className='mr-4 p-2 bg-gray-100 rounded-full'>
-                    <Image source={require('@/assets/images/backIcon.png')} className='w-5 h-5' />
+        <SafeAreaView className='flex-1 bg-white'>
+            <View className='px-4 h-14 flex-row items-center border-b border-gray-200'>
+                <TouchableOpacity onPress={() => router.back()} className='p-2 -ml-2'>
+                    <Image source={require('@/assets/images/CrossIcon.png')} className='w-5 h-5' />
                 </TouchableOpacity>
-                <Text className='text-xl font-bold flex-1 text-gray-800'>Create Eco Post</Text>
+                <Text className='flex-1 text-base font-medium text-gray-900 ml-4'>Add details</Text>
                 <TouchableOpacity 
-                    className={`px-4 py-2 rounded-xl ${isPublishDisabled ? 'bg-gray-300' : 'bg-primary-150'}`}
                     onPress={publishFunction || (() => {})}
                     disabled={isPublishDisabled}
+                    className='py-1.5 px-4'
                 >
-                    <Text className={`font-bold ${isPublishDisabled ? 'text-gray-500' : 'text-white'}`}>Publish</Text>
+                    <Text className={`font-semibold text-sm ${isPublishDisabled ? 'text-gray-400' : 'text-blue-600'}`}>
+                        UPLOAD
+                    </Text>
                 </TouchableOpacity>
             </View>
             <UploadEco 

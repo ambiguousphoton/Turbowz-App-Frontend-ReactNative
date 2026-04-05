@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { fetchComments } from "@/Services/GetCommentsAPI";
+import { getEcoComments } from "@/Services/api/commentService";
 import { CommentInterface } from "@/interfaces/interfaces";
 import { Link, router } from "expo-router";
 import { timeAgo } from "@/HelperFuncs/timeAgo";
@@ -62,15 +63,12 @@ export default function CommentSectionComponent({videoID, ecoID, onRefresh, onTi
       }
     } else if (ecoID) {
       try {
-        const response = await fetch(`http://10.0.2.2:7200/get-eco-comment?ecoID=${ecoID}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Eco comments fetched:', data);
+        const data = await getEcoComments(ecoID);
+        if (data) {
           const commentsArray = data.comments || [];
           setComments(commentsArray);
           onCommentsChange?.(commentsArray);
         } else {
-          console.error('Eco comments response not ok:', response.status);
           setComments([]);
           onCommentsChange?.([]);
         }

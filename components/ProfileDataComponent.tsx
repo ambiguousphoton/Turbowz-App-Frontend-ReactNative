@@ -6,6 +6,7 @@ import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ProfileHeaderComponent from "./ProfileHeaderComponent";
 import ProfileTabs from "./ProfileTabsComponent";
+import { getUser } from "@/Services/api/userService";
 
 
 interface ProfileDataComponentProps {
@@ -25,8 +26,7 @@ export default function ProfileDataComponent({ userID, isMyProfile }: ProfileDat
         setLoading(true);
         try {
             // User ID data
-            const response  = await fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`);
-            const userData  = await response.json() as UserDataInterface;
+            const userData = await getUser(userID) as UserDataInterface;
             userData.UserID = userID;
             setUser(userData);
         } catch (error) {

@@ -3,29 +3,14 @@ import VideoCard from "../VideoCardCompnent";
 import useFetch from "@/Services/useFetch";
 import { VideoCardInterface } from "@/interfaces/interfaces";
 import { useState, useMemo } from "react";
+import { searchVideosByUser } from "@/Services/api/searchService";
 
 interface PostsRouteProps {
   userID: number;
   headerComponent?: React.ReactNode;
 }
 
-const fetchUserVideos = async (userID: number): Promise<VideoCardInterface[]> => {
-  const response = await fetch(`http://10.0.2.2:8082/search-video-with?userID=${userID}`);
-  if (!response.ok) throw new Error('Failed to fetch user videos');
-  const data = await response.json();
-
-  if (!data || !Array.isArray(data)) return [];
-  
-  return data.map((video: any) => ({
-    VideoID: parseInt(video.Video_ID),
-    UploaderName: video.Uploader_Name,
-    UploaderHandle: video.Uploader_Handle,
-    Title: video.Title,
-    Views: video.Views,
-    VideoURL: video.Video_Url,
-    Date: video.Upload_Time
-  }));
-};
+const fetchUserVideos = searchVideosByUser;
 
 export const PostsRoute = ({ userID, headerComponent }: PostsRouteProps) => {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'popularity'>('recent');

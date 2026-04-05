@@ -25,7 +25,10 @@ function WebSocketProviderInner({ userID, children }) {
       const token = await GetToken('jwt');
       if (!token) return;
 
-      const WS_URL = `ws://10.0.2.2:8280/connect-with-socket-server?user=${userID}`;
+      const WS_BASE = process.env.EXPO_PUBLIC_TURBOWZ_ENV === 'test'
+        ? 'ws://10.0.2.2:8280'
+        : 'wss://turbowz.com/api/chat';
+      const WS_URL = `${WS_BASE}/connect-with-socket-server?user=${userID}`;
 
       const connect = () => {
         ws.current = new WebSocket(WS_URL, [], {

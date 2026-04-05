@@ -1,340 +1,237 @@
 import React, { useState, useCallback } from "react";
-import { View, Button, Text, Alert, ActivityIndicator, TouchableOpacity, TextInput, ScrollView } from "react-native";
-import { GetToken } from "@/HelperFuncs/localStorage"; // adjust path to your helper
+import { View, Text, Alert, TouchableOpacity, TextInput, ScrollView, Image } from "react-native";
+import { GetToken } from "@/HelperFuncs/localStorage";
 import { ALLOWED_TAGS } from "@/HelperFuncs/constants";
 import * as ImagePicker from 'expo-image-picker';
-import { VideoView, useVideoPlayer, VideoPlayer } from "expo-video";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useFocusEffect } from '@react-navigation/native';
-import DropDownPicker from "react-native-dropdown-picker";
 import { router } from 'expo-router';
+import { uploadVideo, pollVideoStatus } from '@/Services/api/uploadService';
 
+let Video: any = null;
+try { Video = require('react-native-compressor').Video; } catch {};
 
-
-
-
-
-
-
-const UploadVideoPreviewAndInput = ({ player, videoURI }: { player: VideoPlayer, videoURI: string }) => {
-  const [title, setTitle] = useState("");
-  const [info, setInfo] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  const handlePublish = async () => {
-    if (uploading) return; // Prevent multiple requests
-
-    // 1. Clean the title: Remove leading and trailing spaces
-    const trimmedTitle = title ? title.trim() : "";
-
-    // 2. Validation Check: If the trimmed title is empty, stop and alert
-    if (!trimmedTitle) {
-      // NOTE: Using Alert.alert as requested by the user, 
-      // but in a custom app, this should be a custom modal/toast.
-      Alert.alert("Input Error", "The video needs a title and cannot be empty.");
-      return; 
-    }
-
-    try {
-      setUploading(true);
-      const formData = new FormData();
-      formData.append("video", {
-        uri: videoURI,
-        type: 'video/mp4',
-        name: 'video.mp4',
-      } as any);
-
-      // 3. Use the trimmed title for the upload
-      formData.append("title", trimmedTitle);
-      formData.append("info", info);
-      formData.append("tags", JSON.stringify(selectedTags));
-      
-
-      const token = await GetToken('jwt');
-      if (!token) {
-        Alert.alert("Error", "Authentication required.");
-        return;
-      }
-      
-      const response = await fetch("http://10.0.2.2:8080/upload", {
-        method: "POST",
-        headers: {
-          "Authorization": token,
-        },
-        body: formData,
-      });
-
-      // Check for success status (FastAPI usually returns 200 or 201)
-      if (response.ok) {
-          Alert.alert("Success", "Video Uploaded!");
-      } else {
-          // Handle specific API error messages if available
-          const errorText = await response.text();
-          Alert.alert("Upload Failed", `Server responded with status ${response.status}: ${errorText.substring(0, 100)}...`);
-      }
-
-    } catch (err: any) {
-      Alert.alert("Upload Failed", "An unexpected network or system error occurred.");
-      console.log(err)
-    } finally {
-      setUploading(false);
-    }
-  };
-
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  return (
-    <View className="flex-1">
-      <Text className="text-xl font-bold text-gray-800 mb-4">Preview</Text>
-      <VideoView
-        style={{ width: "100%", height: 250, backgroundColor: "black", borderRadius: 12 }}
-        player={player}
-        allowsFullscreen
-        allowsPictureInPicture
-        nativeControls
-      />
-
-      <View className="mt-6 space-y-4">
-        <TextInput 
-          placeholder="Add Title" 
-          className="border border-gray-300 rounded-xl p-4 text-base bg-white"
-          style={{ maxHeight: 80, textAlignVertical: 'top' }}
-          value={title}
-          onChangeText={setTitle}
-          multiline
-          scrollEnabled={true}
-        />
-
-        <TextInput 
-          placeholder="Add more info about the video.." 
-          className="border border-gray-300 rounded-xl p-4 text-base bg-white"
-          style={{ maxHeight: 80, textAlignVertical: 'top' }}
-          value={info}
-          onChangeText={setInfo}
-          multiline
-          scrollEnabled={true}
-        />
-      </View>
-
-      <TagDropdown selectedTags={selectedTags} onTagsChange={setSelectedTags} />
-
-      <TouchableOpacity 
-        className={`mt-6 px-6 py-4 rounded-xl ${uploading ? 'bg-gray-400' : 'bg-blue-600'}`}
-        onPress={handlePublish}
-        disabled={uploading}
-      >
-        {uploading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white text-center font-semibold text-lg">Publish Video</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  )
+async function compressVideo(uri: string): Promise<string> {
+  if (!Video) return uri;
+  try { return await Video.compress(uri, { compressionMethod: 'auto' }); }
+  catch { return uri; }
 }
 
-
-
-
-export default function UploadVideo({ onAlert, onPublishChange }: { onAlert?: (message: string) => void, onPublishChange?: (fn: () => void, disabled: boolean) => void }) {
+export default function UploadVideo({ onAlert, onPublishChange }: {
+  onAlert?: (message: string) => void,
+  onPublishChange?: (fn: () => void, disabled: boolean) => void
+}) {
   const [videoURI, setVideoURI] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [info, setInfo] = useState("");
   const [uploading, setUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showTags, setShowTags] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        setVideoURI(null);
-      };
-    }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    return () => { setVideoURI(null); };
+  }, []));
 
   const pickVideo = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access media library is required!");
-      return;
-    }
-
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { alert("Permission to access media library is required!"); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: false,
-      quality: 1,
+      allowsEditing: false, quality: 1,
     });
-
-    if (!result.canceled) {
-      setVideoURI(result.assets[0].uri);
-    }
+    if (!result.canceled) setVideoURI(result.assets[0].uri);
   };
 
   const handlePublish = async () => {
     if (uploading) return;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) { onAlert?.("Add a title to your video."); return; }
+    if (!videoURI) { onAlert?.("Select a video first."); return; }
 
-    const trimmedTitle = title ? title.trim() : "";
+    router.back();
 
-    if (!trimmedTitle) {
-      onAlert?.("The video needs a title and cannot be empty.");
-      return;
-    }
-
-    if (!videoURI) {
-      onAlert?.("Please select a video first.");
-      return;
-    }
-
-    try {
-      setUploading(true);
+    compressVideo(videoURI).then(async (finalURI) => {
       const formData = new FormData();
-      formData.append("video", {
-        uri: videoURI,
-        type: 'video/mp4',
-        name: 'video.mp4',
-      } as any);
-
+      formData.append("video", { uri: finalURI, type: 'video/mp4', name: 'video.mp4' } as any);
       formData.append("title", trimmedTitle);
       formData.append("info", info);
       formData.append("tags", JSON.stringify(selectedTags));
-
       const token = await GetToken('jwt');
-      if (!token) {
-        onAlert?.("Authentication required.");
-        return;
-      }
-
-      const response = await fetch("http://10.0.2.2:8080/upload", {
-        method: "POST",
-        headers: {
-          "Authorization": token,
-        },
-        body: formData,
-      });
-
+      if (!token) { Alert.alert("Error", "Authentication required."); return; }
+      const response = await uploadVideo(token, formData);
+      const data = await response.json();
       if (response.ok) {
-        onAlert?.("Video Uploaded!");
-        setTimeout(() => router.back(), 1000);
-      } else {
-        const errorText = await response.text();
-        onAlert?.("Upload Failed");
-      }
-    } catch (err: any) {
-      onAlert?.("An unexpected network or system error occurred.");
+        if (data.status === "processing") {
+          Alert.alert("Uploaded", "Your video is being processed...");
+          pollVideoStatus(data.video_id, () => Alert.alert("Ready", "Your video is now live!"));
+        } else { Alert.alert("Success", "Video Uploaded!"); }
+      } else { Alert.alert("Upload Failed", `Server responded with status ${response.status}`); }
+    }).catch((err) => {
+      Alert.alert("Upload Failed", "An unexpected error occurred.");
       console.log(err);
-    } finally {
-      setUploading(false);
-    }
+    });
   };
 
-  const player = useVideoPlayer(videoURI, player => {
-    player.loop = true;
-  });
-
+  const player = useVideoPlayer(videoURI, p => { p.loop = true; });
   const isPublishDisabled = !videoURI || !title.trim() || uploading;
 
   React.useEffect(() => {
     onPublishChange?.(handlePublish, isPublishDisabled);
   }, [videoURI, title, uploading]);
 
+  const toggleTag = (val: string) => {
+    setSelectedTags(prev =>
+      prev.includes(val) ? prev.filter(t => t !== val) : [...prev, val]
+    );
+  };
+
   return (
-    <ScrollView className="flex-1 bg-gray-100 px-6 pt-6" showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 bg-white" showsVerticalScrollIndicator={false}>
+
+      {/* Video preview */}
       {videoURI ? (
-        <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-          <Text className="text-lg font-bold text-gray-800 mb-4">Preview</Text>
-          <VideoView
-            style={{ width: "100%", height: 250, backgroundColor: "black", borderRadius: 16 }}
-            player={player}
-            allowsFullscreen
-            allowsPictureInPicture
-            nativeControls
-          />
+        <View className="pb-2 border-b border-gray-100">
+          <View className="overflow-hidden bg-black" style={{ height: 260 }}>
+            <VideoView
+              style={{ width: '100%', height: '100%' }}
+              player={player}
+              nativeControls
+              allowsFullscreen
+            />
+          </View>
+          <TouchableOpacity onPress={pickVideo} activeOpacity={0.7} className="mt-2 items-center">
+            <Text className="text-xs text-blue-600 font-medium">Change video</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm items-center">
-          <View className="w-24 h-24 bg-primary-25 rounded-full items-center justify-center mb-4">
-            <Text className="text-4xl">🎥</Text>
+        <TouchableOpacity
+          onPress={pickVideo}
+          activeOpacity={0.7}
+          className="mb-2 bg-gray-100 items-center justify-center border-b border-gray-200"
+          style={{ height: 240 }}
+        >
+          <View className="w-20 h-20 rounded-full bg-gray-200 items-center justify-center mb-3">
+            <Image source={require('@/assets/images/VideosIcon.png')} className="w-10 h-10" style={{ tintColor: '#6B7280' }} />
           </View>
-          <Text className="text-gray-600 text-center mb-6">Select a video to get started</Text>
-          <TouchableOpacity 
-            className="bg-primary-150 px-8 py-4 rounded-2xl shadow-sm" 
-            onPress={pickVideo}
-          >
-            <Text className="font-bold text-white text-center text-base">📹 Choose Video</Text>
-          </TouchableOpacity>
+          <Text className="text-gray-500 text-sm font-medium">Select video</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Title */}
+      <View className="px-4 py-4 border-b border-gray-100">
+        <TextInput
+          placeholder="Add a title (required)"
+          placeholderTextColor="#9CA3AF"
+          className="text-base text-gray-900"
+          style={{ textAlignVertical: 'top', minHeight: 44 }}
+          value={title}
+          onChangeText={t => t.length <= 100 && setTitle(t)}
+          multiline
+          scrollEnabled
+        />
+        <Text className="text-xs text-gray-400 self-end mt-1">{title.length}/100</Text>
+      </View>
+
+      {/* Description row */}
+      <View className="px-4 py-4 border-b border-gray-100">
+        <TextInput
+          placeholder="Add a description"
+          placeholderTextColor="#9CA3AF"
+          className="text-sm text-gray-900"
+          style={{ textAlignVertical: 'top', minHeight: 60, maxHeight: 120 }}
+          value={info}
+          onChangeText={t => t.length <= 500 && setInfo(t)}
+          multiline
+          scrollEnabled
+        />
+        {info.length > 0 && (
+          <Text className="text-xs text-gray-400 self-end mt-1">{info.length}/500</Text>
+        )}
+      </View>
+
+      {/* Visibility row (static, like YouTube) */}
+      <TouchableOpacity className="px-4 py-4 border-b border-gray-100 flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <Text className="text-sm text-gray-900">Visibility</Text>
+        </View>
+        <View className="flex-row items-center">
+          <Text className="text-sm text-gray-500 mr-1">Public</Text>
+          <Text className="text-gray-400 text-xs">›</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Tags row */}
+      <TouchableOpacity
+        className="px-4 py-4 border-b border-gray-100 flex-row items-center justify-between"
+        onPress={() => setShowTags(!showTags)}
+        activeOpacity={0.6}
+      >
+        <View className="flex-row items-center flex-1">
+          <Text className="text-sm text-gray-900">Tags</Text>
+          {selectedTags.length > 0 && (
+            <Text className="text-xs text-gray-400 ml-2">{selectedTags.length} selected</Text>
+          )}
+        </View>
+        <Text className="text-gray-400 text-base">{showTags ? '⌃' : '⌄'}</Text>
+      </TouchableOpacity>
+
+      {/* Tags expanded */}
+      {showTags && (
+        <View className="px-4 pt-3 pb-4 border-b border-gray-100 bg-gray-50">
+          <View className="flex-row flex-wrap">
+            {ALLOWED_TAGS.map(tag => {
+              const selected = selectedTags.includes(tag.value);
+              return (
+                <TouchableOpacity
+                  key={tag.value}
+                  onPress={() => toggleTag(tag.value)}
+                  activeOpacity={0.7}
+                  className={`mr-2 mb-2 px-3.5 py-1.5 rounded-full border ${
+                    selected
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <Text className={`text-xs font-medium ${selected ? 'text-white' : 'text-gray-700'}`}>
+                    {tag.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       )}
 
-      <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-        <Text className="text-lg font-bold text-gray-800 mb-4">Video Details</Text>
-        <TextInput 
-          placeholder="Add Title" 
-          className="border border-gray-200 rounded-2xl p-4 text-base bg-gray-50 mb-4"
-          style={{ maxHeight: 80, textAlignVertical: 'top' }}
-          value={title}
-          onChangeText={setTitle}
-          multiline
-          scrollEnabled={true}
-        />
-
-        <TextInput 
-          placeholder="Add more info about the video.." 
-          className="border border-gray-200 rounded-2xl p-4 text-base bg-gray-50"
-          style={{ maxHeight: 80, textAlignVertical: 'top' }}
-          value={info}
-          onChangeText={setInfo}
-          multiline
-          scrollEnabled={true}
-        />
-      </View>
-
-      <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-        <TagDropdown selectedTags={selectedTags} onTagsChange={setSelectedTags} />
-      </View>
-
+      <View className="h-20" />
     </ScrollView>
   );
 }
 
-
-
 export const TagDropdown = ({ selectedTags, onTagsChange }: { selectedTags: string[], onTagsChange: (tags: string[]) => void }) => {
   const toggleTag = (tagValue: string) => {
-    if (selectedTags.includes(tagValue)) {
-      onTagsChange(selectedTags.filter(tag => tag !== tagValue));
-    } else {
-      onTagsChange([...selectedTags, tagValue]);
-    }
+    onTagsChange(
+      selectedTags.includes(tagValue)
+        ? selectedTags.filter(t => t !== tagValue)
+        : [...selectedTags, tagValue]
+    );
   };
 
   return (
     <View>
-      <Text className="text-lg font-bold text-gray-800 mb-3">
-        🏷️ Select Tags
-      </Text>
-
+      <Text className="text-base font-bold text-gray-800 mb-3">🏷️ Tags</Text>
       <View className="flex-row flex-wrap">
         {ALLOWED_TAGS.map((tag) => {
           const isSelected = selectedTags.includes(tag.value);
           return (
             <TouchableOpacity
               key={tag.value}
-              className={`px-4 py-2 rounded-full mr-2 mb-2 border ${
-                isSelected ? 'bg-primary-150 border-primary-150' : 'bg-gray-100 border-gray-200'
+              className={`px-4 py-2 rounded-full mr-2 mb-2.5 border ${
+                isSelected ? 'bg-primary-150 border-primary-150' : 'bg-gray-50 border-gray-200'
               }`}
               onPress={() => toggleTag(tag.value)}
+              activeOpacity={0.7}
             >
-              <Text className={`text-sm font-medium ${
-                isSelected ? 'text-white' : 'text-gray-600'
-              }`}>
+              <Text className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>
                 {tag.label}
               </Text>
             </TouchableOpacity>
@@ -344,9 +241,3 @@ export const TagDropdown = ({ selectedTags, onTagsChange }: { selectedTags: stri
     </View>
   );
 };
-
-
-
-
-
-

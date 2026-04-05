@@ -6,6 +6,7 @@ import PrimaryButtonComponent, {SecondaryButtonComponent, DescriptionComponent} 
 import { useRouter } from 'expo-router';
 import { GetUser, GetToken } from '@/HelperFuncs/localStorage';
 import ProfileHeadBanner from './ProfileHeadBanner';
+import { getFollowingInfo, follow, unfollow } from '@/Services/api/followService';
 
 interface ProfileHeaderComponentProps {
     user: UserDataInterface;
@@ -26,20 +27,17 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
     }, []);
     
     useEffect(() => {
-        const getFollowInfo = async () => {
+        const fetchFollowInfo = async () => {
             if (currentUserID && user?.UserID) {
                 try {
-                    const response = await fetch(`http://10.0.2.2:8010/get-following-info?userID=${user.UserID}&requesterID=${currentUserID}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setFollowInfo(data);
-                    }
+                    const data = await getFollowingInfo(user.UserID, currentUserID);
+                    if (data) setFollowInfo(data);
                 } catch (error) {
                     console.error('Error fetching follow info:', error);
                 }
             }
         };
-        getFollowInfo();
+        fetchFollowInfo();
     }, [currentUserID, user?.UserID]);
     
     const makeDuoRoom = (user1ID: string, user2ID: string) => {
@@ -50,21 +48,13 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
         try {
             const authToken = await GetToken('jwt');
             const isUnfollow = followInfo?.AlreadyFollowed;
-            const endpoint = isUnfollow ? 'http://10.0.2.2:8010/unfollow' : 'http://10.0.2.2:8010/follow';
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': authToken || ''
-                },
-                body: `followeeID=${user.UserID}`
-            });
-            
-            if (response.ok) {
+            const success = isUnfollow
+                ? await unfollow(authToken || '', user.UserID)
+                : await follow(authToken || '', user.UserID);
+            if (success) {
                 setFollowInfo(prev => prev ? {...prev, AlreadyFollowed: !prev.AlreadyFollowed, FollowerCount: prev.AlreadyFollowed ? prev.FollowerCount - 1 : prev.FollowerCount + 1} : null);
             } else {
-                console.error(isUnfollow ? 'Unfollow failed:' : 'Follow failed:', response.status);
+                console.error(isUnfollow ? 'Unfollow failed' : 'Follow failed');
             }
         } catch (error) {
             console.error('Follow/Unfollow error:', error);
@@ -117,7 +107,7 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderComponentProps> = ({ user, i
             />
             </Link>
         ) : (
-            <View className="w-5 h-5" /> // keeps spacing consistent
+            <View className="w-5 h-5" />
         )}
         </View>
 

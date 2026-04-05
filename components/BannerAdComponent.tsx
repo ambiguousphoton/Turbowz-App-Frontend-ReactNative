@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Linking, Image, Dimensions } from 'react-native';
+import { adImageUrl } from '@/Services/api/imageService';
 
 
 interface BannerAdProps {
@@ -23,7 +24,7 @@ const BannerAdComponent = ({ ad_id, title, redirect_url }: BannerAdProps) => {
       </View>
       {!imageError && (
         <Image 
-          source={{ uri: `http://10.0.2.2:8088/ad?ad_id=${ad_id}` }}
+          source={{ uri: adImageUrl(ad_id) }}
           style={{ width: screenWidth, height: imageHeight }}
           resizeMode="contain"
           onError={(error) => {

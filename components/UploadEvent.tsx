@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Platform, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { GetToken } from '@/HelperFuncs/localStorage';
 import { ALLOWED_TAGS } from '@/HelperFuncs/constants';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { uploadEvent } from '@/Services/api/uploadService';
 
 const UploadEvent = ({ onAlert, onPublishChange }: { onAlert?: (message: string) => void, onPublishChange?: (fn: () => void, disabled: boolean) => void }) => {
   const [eventTitle, setEventTitle] = useState('');
@@ -65,49 +66,33 @@ const UploadEvent = ({ onAlert, onPublishChange }: { onAlert?: (message: string)
       return;
     }
 
-    setUploading(true);
-    try {
-      const token = await GetToken('jwt');
-      
-      if (!token) {
-        onAlert?.('Authentication required');
-        return;
+    router.back();
+
+    (async () => {
+      try {
+        const token = await GetToken('jwt');
+        if (!token) { Alert.alert('Error', 'Authentication required'); return; }
+
+        const formData = new FormData();
+        formData.append('event_title', eventTitle);
+        formData.append('event_description', eventDescription);
+        formData.append('event_start_time', eventStartTime.toISOString());
+        formData.append('event_end_time', eventEndTime.toISOString());
+        formData.append('tags', JSON.stringify(selectedTags));
+        images.forEach((uri, index) => {
+          formData.append('images', { uri, type: 'image/jpeg', name: `image_${index}.jpg` } as any);
+        });
+
+        const response = await uploadEvent(token, formData);
+        if (response.ok) {
+          Alert.alert('Success', 'Event created successfully!');
+        } else {
+          Alert.alert('Upload Failed', 'Upload failed');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Network error occurred');
       }
-
-      const formData = new FormData();
-      formData.append('event_title', eventTitle);
-      formData.append('event_description', eventDescription);
-      formData.append('event_start_time', eventStartTime.toISOString());
-      formData.append('event_end_time', eventEndTime.toISOString());
-      formData.append('tags', JSON.stringify(selectedTags));
-      
-      images.forEach((uri, index) => {
-        formData.append('images', {
-          uri,
-          type: 'image/jpeg',
-          name: `image_${index}.jpg`,
-        } as any);
-      });
-
-      const response = await fetch('http://10.0.2.2:8080/event-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        onAlert?.('Event created successfully!');
-        setTimeout(() => router.back(), 1000);
-      } else {
-        onAlert?.('Upload failed');
-      }
-    } catch (error) {
-      onAlert?.('Network error occurred');
-    } finally {
-      setUploading(false);
-    }
+    })();
   };
 
   const isPublishDisabled = !eventTitle.trim() || !eventDescription.trim() || uploading;

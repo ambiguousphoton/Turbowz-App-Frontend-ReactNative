@@ -1,6 +1,7 @@
 import { GetToken } from "@/HelperFuncs/localStorage";
 import React, { useState, useEffect } from "react";
 import { View, TextInput, KeyboardAvoidingView, Alert, Platform, TouchableOpacity, Image, Animated, Text } from "react-native";
+import { pushEcoComment } from "@/Services/api/commentService";
 
 export default function EcoCommentInputComponent({ ecoID, onCommentAdded, parentCommentID }: { ecoID: number; onCommentAdded?: () => void; parentCommentID?: string | number }) {
     const [text, setText] = useState("");
@@ -34,24 +35,7 @@ export default function EcoCommentInputComponent({ ecoID, onCommentAdded, parent
                 return;
             }
 
-            const bodyParams = new URLSearchParams({
-                parentEcoID: ecoID.toString(),
-                commentText: text,
-                hasContextFlag: hasContextFlag.toString()
-            });
-            
-            if (parentCommentID) {
-                bodyParams.append('parentCommentID', parentCommentID.toString());
-            }
-
-            const response = await fetch("http://10.0.2.2:7200/push-eco-comment", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": token
-                },
-                body: bodyParams.toString(),
-            });
+            const response = await pushEcoComment(token, ecoID, text, hasContextFlag, parentCommentID);
 
             if (response.ok) {
                 setText("");

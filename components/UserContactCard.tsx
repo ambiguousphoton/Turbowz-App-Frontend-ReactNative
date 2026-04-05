@@ -6,6 +6,8 @@ import { Link } from 'expo-router';
 import { UserDataInterface } from '@/interfaces/interfaces';
 import ConnectionRequestButton from './connectionRequestButton';
 import UserContactCardPlaceholder from './UserContactCardPlaceholder';
+import { getUser } from '@/Services/api/userService';
+import { pfpUrl } from '@/Services/api/imageService';
 
 interface UserContactCardProps {
     userID: string;
@@ -29,8 +31,7 @@ const UserContactCard = ({userID, roomID, latestMessage, latestMessageTime, unre
     const [profileImageError, setProfileImageError] = useState(false);
 
     useEffect(() => {
-    fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`) // use 10.0.2.2 for Android emulator
-      .then(res => res.json())
+    getUser(userID)
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
@@ -59,7 +60,7 @@ const UserContactCard = ({userID, roomID, latestMessage, latestMessageTime, unre
                     </View>
                 ) : (
                     <Image 
-                        source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${userID}` }} 
+                        source={{ uri: pfpUrl(userID) }} 
                         className="w-12 h-12 rounded-full" 
                         resizeMode="cover" 
                         onError={() => setProfileImageError(true)}
@@ -99,7 +100,7 @@ const UserContactCard = ({userID, roomID, latestMessage, latestMessageTime, unre
                 </View>
             ) : (
                 <Image 
-                    source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${userID}` }} 
+                    source={{ uri: pfpUrl(userID) }} 
                     className="w-12 h-12 rounded-full" 
                     resizeMode="cover" 
                     onError={() => setProfileImageError(true)}

@@ -6,6 +6,10 @@ import { Link, router } from "expo-router";
 import { timeAgo } from "@/HelperFuncs/timeAgo";
 import ContentQualityBadge from "@/components/ContentQualityBadge";
 import EcoMorePanelComponent from "./EcoMorePanelComponent";
+import { getTurbomaxStatus, ecoSavedStatus, saveEco } from "@/Services/api/userService";
+import { checkEcoLuvStatus, getEcoScore, luvEco } from "@/Services/api/ecoService";
+import { getFollowingInfo, follow, unfollow } from "@/Services/api/followService";
+import { pfpUrl, ecoImageUrl } from "@/Services/api/imageService";
 
 interface EcoCardProps {
   item: EcoDataInterface;
@@ -42,11 +46,8 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
     const getFollowInfo = async () => {
       if (currentUserID && item.Uploader_ID) {
         try {
-          const response = await fetch(`http://10.0.2.2:8010/get-following-info?userID=${item.Uploader_ID}&requesterID=${currentUserID}`);
-          if (response.ok) {
-            const data = await response.json();
-            setFollowInfo(data);
-          }
+          const data = await getFollowingInfo(item.Uploader_ID, currentUserID);
+          if (data) setFollowInfo(data);
         } catch (error) {
           console.error('Error fetching follow info:', error);
         }
@@ -57,9 +58,8 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
 
   useEffect(() => {
     if (item.Uploader_ID) {
-      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${item.Uploader_ID}`)
-        .then(res => res.json())
-        .then(result => setIsTurboVerified(result.turbomax_active || false))
+      getTurbomaxStatus(item.Uploader_ID)
+        .then(setIsTurboVerified)
         .catch(() => setIsTurboVerified(false));
     }
   }, [item.Uploader_ID]);
@@ -68,15 +68,8 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
     const getLuvStatus = async () => {
       if (currentUserID && item.Eco_Id) {
         try {
-          const response = await fetch('http://10.0.2.2:7011/check-eco-luv-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `eco_id=${item.Eco_Id}&user_ID=${currentUserID}`
-          });
-          if (response.ok) {
-            const data = await response.json();
+          const data = await checkEcoLuvStatus(item.Eco_Id, currentUserID);
+          if (data) {
             setIsLuved(data.luved);
             setInitialIsLuved(data.luved);
             setCurrentLuvCount(data.total_luvs || 0);
@@ -94,14 +87,8 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
       try {
         const token = await GetToken('jwt');
         if (!token) return;
-        const response = await fetch(`http://10.0.2.2:8100/eco-saved-status?ecoID=${item.Eco_Id}`, {
-          method: 'POST',
-          headers: { 'Authorization': token }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsSaved(data.saved);
-        }
+        const data = await ecoSavedStatus(token, item.Eco_Id);
+        if (data) setIsSaved(data.saved);
       } catch (error) {
         console.error('Fetch saved status error:', error);
       }
@@ -111,11 +98,10 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
 
   useEffect(() => {
     if (item.Eco_Id) {
-      fetch(`http://10.0.2.2:7011/get-echo-score?echo_id=${item.Eco_Id}`)
-        .then(res => res.json())
+      getEcoScore(item.Eco_Id)
         .then(data => {
-          setEcoQuality(data.Echo_Quality?.Valid ? data.Echo_Quality.Float64 : 0);
-          setEcoAIUsage(data.Echo_AI_Usage?.Valid ? data.Echo_AI_Usage.Float64 : 0);
+          setEcoQuality(data?.Echo_Quality?.Valid ? data.Echo_Quality.Float64 : 0);
+          setEcoAIUsage(data?.Echo_AI_Usage?.Valid ? data.Echo_AI_Usage.Float64 : 0);
         })
         .catch(() => {
           setEcoQuality(0);
@@ -133,18 +119,10 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
     try {
       const authToken = await GetToken('jwt');
       const isUnfollow = followInfo?.AlreadyFollowed;
-      const endpoint = isUnfollow ? 'http://10.0.2.2:8010/unfollow' : 'http://10.0.2.2:8010/follow';
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': authToken || ''
-        },
-        body: `followeeID=${item.Uploader_ID}`
-      });
-
-      if (response.ok) {
+      const success = isUnfollow
+        ? await unfollow(authToken || '', item.Uploader_ID)
+        : await follow(authToken || '', item.Uploader_ID);
+      if (success) {
         setFollowInfo(prev => prev ? { ...prev, AlreadyFollowed: !prev.AlreadyFollowed, FollowerCount: prev.AlreadyFollowed ? prev.FollowerCount - 1 : prev.FollowerCount + 1 } : null);
       } else {
         console.error(isUnfollow ? 'Unfollow failed:' : 'Follow failed:', response.status);
@@ -168,31 +146,11 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
     try {
       const authToken = await GetToken('jwt');
 
-      const response = await fetch('http://10.0.2.2:7011/luv', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': authToken || ''
-        },
-        body: `eco_id=${item.Eco_Id}`
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await luvEco(authToken || '', item.Eco_Id);
+      if (data) {
         setIsLuved(data.luved);
-
-        // Refresh luv count from API
-        const statusResponse = await fetch('http://10.0.2.2:7011/check-eco-luv-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `eco_id=${item.Eco_Id}&user_ID=${currentUserID}`
-        });
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          setCurrentLuvCount(statusData.total_luvs || 0);
-        }
+        const statusData = await checkEcoLuvStatus(item.Eco_Id, currentUserID!);
+        if (statusData) setCurrentLuvCount(statusData.total_luvs || 0);
       } else {
         console.error('Luv action failed:', response.status);
       }
@@ -219,7 +177,7 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
             }
           }}>
             <Image
-              source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${item.Uploader_ID}` }}
+              source={{ uri: pfpUrl(item.Uploader_ID) }}
               className="w-9 h-9 mr-4 rounded-full"
               resizeMode="cover"
               onError={() => setProfileImageError(true)}
@@ -284,13 +242,13 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
           {Array.from({ length: item.Images_Count }, (_, index) => (
             <Image
               key={index}
-              source={{ uri: `http://10.0.2.2:8088/e?eco_url=${item.Eco_Url}&index=${index}` }}
+              source={{ uri: ecoImageUrl(item.Eco_Url, index) }}
               style={{ width: screenWidth, height: 300 }}
               resizeMode="contain"
-              onError={(error) => {
+              onError={(e) => {
+                console.error(`[EcoImage] Failed to load eco=${item.Eco_Id} index=${index} uri=${ecoImageUrl(item.Eco_Url, index)}`, e.nativeEvent.error);
                 setImageError(prev => ({ ...prev, [`${item.Eco_Id}-${index}`]: true }));
               }}
-              onLoad={() => {/* Image loaded successfully */ }}
             />
           ))}
         </ScrollView>
@@ -372,16 +330,8 @@ export const EcoCardComponent = ({ item }: EcoCardProps) => {
                   console.error('Authentication required');
                   return;
                 }
-                const response = await fetch(`http://10.0.2.2:8100/save-eco?ecoID=${item.Eco_Id}`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': token
-                  }
-                });
-                if (response.ok) {
-                  const data = await response.json();
-                  setIsSaved(data.saved);
-                }
+                const data = await saveEco(token, item.Eco_Id);
+                if (data) setIsSaved(data.saved);
               } catch (error) {
                 console.error('Save eco error:', error);
               }

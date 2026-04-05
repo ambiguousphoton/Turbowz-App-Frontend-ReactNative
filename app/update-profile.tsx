@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { GetToken, GetUser, SaveUser } from '@/HelperFuncs/localStorage';
 import * as ImagePicker from 'expo-image-picker';
+import { getUser, updateProfile } from '@/Services/api/userService';
+import { pfpUrl } from '@/Services/api/imageService';
+import { uploadProfilePicture } from '@/Services/api/uploadService';
 
 export default function UpdateProfile() {
   const router = useRouter();
@@ -32,8 +35,7 @@ export default function UpdateProfile() {
       }
       
       setUserID(user.UserID);
-      const response = await fetch(`http://10.0.2.2:8100/get-user?userID=${user.UserID}`);
-      const userData = await response.json();
+      const userData = await getUser(user.UserID);
       
       setFormData({
         name: userData.UserHandle || '',
@@ -43,7 +45,7 @@ export default function UpdateProfile() {
         location: userData.FromLocation || '',
         website: ''
       });
-      setProfileImage(`http://10.0.2.2:8088/pfp?user_id=${user.UserID}`);
+      setProfileImage(pfpUrl(user.UserID));
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch user data');
     }
@@ -77,13 +79,7 @@ export default function UpdateProfile() {
     } as any);
 
     try {
-      const response = await fetch('http://10.0.2.2:8080/pfp-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-        },
-        body: formData,
-      });
+      const response = await uploadProfilePicture(token, formData);
 
       if (response.ok) {
         setProfileImage(`${uri}?t=${Date.now()}`);
@@ -103,21 +99,13 @@ export default function UpdateProfile() {
       return;
     }
 
-    const formBody = new URLSearchParams();
-    formBody.append('user_handle', formData.name);
-    formBody.append('user_profile_name', formData.profile_name);
-    formBody.append('userDescription', formData.bio);
-    formBody.append('fromLocation', formData.location);
-    formBody.append('gender', '');
-
     try {
-      const response = await fetch("http://10.0.2.2:8100/update-profile", {
-        method: "POST",
-        headers: {
-          "Authorization": token,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formBody.toString(),
+      const response = await updateProfile(token, {
+        user_handle: formData.name,
+        user_profile_name: formData.profile_name,
+        userDescription: formData.bio,
+        fromLocation: formData.location,
+        gender: '',
       });
 
       if (response.ok) {

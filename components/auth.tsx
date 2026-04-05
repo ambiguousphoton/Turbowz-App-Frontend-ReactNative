@@ -5,6 +5,7 @@ import { UserSignUpInterface, UserSignInInterface, UserDataInterface } from "@/i
 import { DeleteToken, GetToken, SaveToken } from "@/HelperFuncs/localStorage";
 import { useAuth } from "@/context/AuthContext";  
 import { router,} from "expo-router";
+import { getUser } from "@/Services/api/userService";
 
 
 
@@ -28,9 +29,7 @@ export function SignInComponent() {
       setJwt(token);
       await SaveToken("jwt", token);
 
-      // Fetch user details using userID
-      const userDetailsResponse = await fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`);
-      const userDetails = await userDetailsResponse.json();
+      const userDetails = await getUser(userID);
       
       const userData: UserDataInterface = {
         UserID: +userID,

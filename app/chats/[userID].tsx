@@ -8,6 +8,8 @@ import { getMessagesByRoom, dbEvents, saveOutgoingMessage, updateRoomOpenTime, m
 import { useWS } from "@/context/WebSocketConnectionContext";
 import { GetUser } from "@/HelperFuncs/localStorage";
 import LinkableText from "@/components/LinkableText";
+import { getUser, getTurbomaxStatus } from "@/Services/api/userService";
+import { pfpUrl } from "@/Services/api/imageService";
 interface Message {
   id: string;
   text: string;
@@ -181,14 +183,12 @@ const ChatPage = () => {
   };
 
   useEffect(() => {
-    fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`)
-      .then(res => res.json())
+    getUser(userID)
       .then(setUser)
       .catch(() => setUser(null));
 
-    fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
-      .then(res => res.json())
-      .then(result => setIsTurboVerified(result.turbomax_active || false))
+    getTurbomaxStatus(userID)
+      .then(setIsTurboVerified)
       .catch(() => setIsTurboVerified(false));
   }, [userID]);
 
@@ -337,7 +337,7 @@ const ChatPage = () => {
             </View>
           ) : (
             <Image 
-              source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${userID}` }} 
+              source={{ uri: pfpUrl(userID) }} 
               className="w-10 h-10 rounded-full mr-3" 
               resizeMode="cover" 
               onError={() => setProfileImageError(true)}

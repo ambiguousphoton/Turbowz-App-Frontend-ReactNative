@@ -5,6 +5,7 @@ import { useSQLiteContext } from 'expo-sqlite'
 import UserContactCard from './UserContactCard'
 import { getAllRooms, dbEvents } from '@/HelperFuncs/MessageStorage'
 import { GetUser } from '@/HelperFuncs/localStorage'
+import { getUser } from '@/Services/api/userService'
 
 interface ContactsComponentProps {
     shareType?: string;
@@ -108,8 +109,7 @@ const ContactsComponent = ({ shareType, shareId, shareTitle, shareText, shareUrl
                 // Fetch user name for search functionality
                 let userName = ''
                 try {
-                    const userResponse = await fetch(`http://10.0.2.2:8100/get-user?userID=${otherUserID}`)
-                    const userData = await userResponse.json()
+                    const userData = await getUser(otherUserID)
                     userName = userData?.UserProfileName || ''
                 } catch (error) {
                     // Error fetching user name

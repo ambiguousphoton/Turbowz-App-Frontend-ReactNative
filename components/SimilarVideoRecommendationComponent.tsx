@@ -2,13 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import FullVideoCardComponent from './FullVideoCardComponent';
 import useFetch from '@/Services/useFetch';
+import { recommendSimilarVideos } from '@/Services/api/recommendService';
 interface SimilarVideoRecommendationComponentProps {
   videoID: number;
 }
 
 const fetchSimilarVideos = async (videoID: number, page: number = 1) => {
-  const response = await fetch(`http://10.0.2.2:8007/recommend?video_id=${videoID}&page=${page}&limit=5`);
-  return response.json();
+  return recommendSimilarVideos(videoID, page, 5);
 };
 
 export default function SimilarVideoRecommendationComponent({ videoID }: SimilarVideoRecommendationComponentProps) {

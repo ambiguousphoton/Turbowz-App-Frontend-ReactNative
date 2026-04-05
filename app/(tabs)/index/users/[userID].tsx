@@ -5,6 +5,7 @@ import { Text , Image, TouchableOpacity, ActivityIndicator, View} from "react-na
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { UserDataInterface } from "@/interfaces/interfaces";
+import { getUser } from "@/Services/api/userService";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -17,8 +18,7 @@ export default function RegisterPage() {
         const fetchUser = async () => {
             if (userID) {
                 try {
-                    const response = await fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`);
-                    const userData = await response.json() as UserDataInterface;
+                    const userData = await getUser(userID) as UserDataInterface;
                     userData.UserID = parseInt(userID);
                     setUser(userData);
                 } catch (error) {

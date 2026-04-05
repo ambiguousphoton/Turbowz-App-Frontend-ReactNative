@@ -11,37 +11,11 @@ interface MoreEcosFromUploaderProps {
   currentEcoID: number;
 }
 
-const fetchUserEcos = async (userID: number): Promise<EcoDataInterface[]> => {
-  const response = await fetch(`http://10.0.2.2:8082/search-eco-by-user?userID=${userID}`, {
-    headers: { Accept: "application/json" },
-  });
-  
-  if (!response.ok) throw new Error("Failed to fetch user ecos");
-
-  const data = await response.json();
-
-  if (!Array.isArray(data)) return [];
-
-  return data.map((eco: any) => ({
-    Eco_Id: eco.Eco_Id,
-    Eco_Url: eco.Eco_Url,
-    Eco_Text: eco.Eco_Text,
-    Images_Count: eco.Images_Count,
-    Created_At: eco.Created_At,
-    View_Count: eco.View_Count,
-    Comment_Count: eco.Comment_Count,
-    Luv_Count: eco.Luv_Count,
-    Tags: eco.Tags || [],
-    Uploader_ID: eco.Uploader_ID,
-    Uploader_Name: eco.Uploader_Name,
-    Uploader_Handle: eco.Uploader_Handle,
-    Save_Count: eco.Saves_Count || 0,
-    Already_Luved: eco.Already_Luved ?? false,
-  }));
-};
+import { searchEcosByUser } from "@/Services/api/searchService";
+import { ecoImageUrl } from "@/Services/api/imageService";
 
 export default function UploaderEcosComponent({ uploaderID, uploaderName, currentEcoID }: MoreEcosFromUploaderProps) {
-  const { data: ecos, loading } = useFetch<EcoDataInterface[]>(() => fetchUserEcos(uploaderID), true);
+  const { data: ecos, loading } = useFetch<EcoDataInterface[]>(() => searchEcosByUser(uploaderID), true);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const { width: screenWidth } = Dimensions.get('window');
 
@@ -70,7 +44,7 @@ export default function UploaderEcosComponent({ uploaderID, uploaderName, curren
           {hasImage && (
             <View className="self-start">
               <Image 
-                source={{ uri: `http://10.0.2.2:8088/e?eco_url=${item.Eco_Url}&index=0` }}
+                source={{ uri: ecoImageUrl(item.Eco_Url, 0) }}
                 className="w-16 h-16 rounded-lg mb-2"
                 resizeMode="cover"
                 onError={() => handleImageError(item.Eco_Id)}

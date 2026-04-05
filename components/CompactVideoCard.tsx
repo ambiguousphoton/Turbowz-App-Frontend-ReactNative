@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { timeAgo } from '@/HelperFuncs/timeAgo';
+import { imageUrl } from '@/Services/api/imageService';
 
 interface CompactVideoCardProps {
   VideoURL: string;
@@ -40,7 +41,7 @@ export default function CompactVideoCard({
         </View>
       ) : (
         <Image 
-          source={{ uri: `http://10.0.2.2:8088/i?img=${VideoURL}` }}
+          source={{ uri: imageUrl(VideoURL) }}
           className="w-full h-24 rounded-t-lg bg-gray-200"
           onError={() => setImageError(true)}
         />

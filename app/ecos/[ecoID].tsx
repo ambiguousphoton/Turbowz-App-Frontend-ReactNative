@@ -14,6 +14,10 @@ import UploaderEcosComponent from "@/components/UploaderEcosComponent";
 import ContentPageHeader from "@/components/ContentPageHeader";
 import EcoMorePanelComponent from "@/components/EcoMorePanelComponent";
 import ContentQualityBadge from "@/components/ContentQualityBadge";
+import { getTurbomaxStatus, ecoSavedStatus, saveEco } from "@/Services/api/userService";
+import { getEcoMetadata, checkEcoLuvStatus, getEcoScore, luvEco } from "@/Services/api/ecoService";
+import { getFollowingInfo, follow, unfollow } from "@/Services/api/followService";
+import { ecoImageUrl, pfpUrl } from "@/Services/api/imageService";
 
 export default function EcoPage() {
   const { ecoID, openComments } = useLocalSearchParams();
@@ -57,11 +61,8 @@ export default function EcoPage() {
       
       try {
         setLoading(true);
-        const response = await fetch(`http://10.0.2.2:7011/emd?eco_id=${ecoID}`);
-        if (response.ok) {
-          const data = await response.json();
-          setEcoData(data);
-        }
+        const data = await getEcoMetadata(ecoID);
+        if (data) setEcoData(data);
       } catch (error) {
         console.error('Error fetching eco data:', error);
       } finally {
@@ -76,11 +77,8 @@ export default function EcoPage() {
     const getFollowInfo = async () => {
       if (currentUserID && ecoData?.Uploader_ID) {
         try {
-          const response = await fetch(`http://10.0.2.2:8010/get-following-info?userID=${ecoData.Uploader_ID}&requesterID=${currentUserID}`);
-          if (response.ok) {
-            const data = await response.json();
-            setFollowInfo(data);
-          }
+          const data = await getFollowingInfo(ecoData.Uploader_ID, currentUserID);
+          if (data) setFollowInfo(data);
         } catch (error) {
           console.error('Error fetching follow info:', error);
         }
@@ -91,9 +89,8 @@ export default function EcoPage() {
 
   useEffect(() => {
     if (ecoData?.Uploader_ID) {
-      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${ecoData.Uploader_ID}`)
-        .then(res => res.json())
-        .then(result => setIsTurboVerified(result.turbomax_active || false))
+      getTurbomaxStatus(ecoData.Uploader_ID)
+        .then(setIsTurboVerified)
         .catch(() => setIsTurboVerified(false));
     }
   }, [ecoData?.Uploader_ID]);
@@ -102,15 +99,8 @@ export default function EcoPage() {
     const getLuvStatus = async () => {
       if (currentUserID && ecoData?.Eco_Id) {
         try {
-          const response = await fetch('http://10.0.2.2:7011/check-eco-luv-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `eco_id=${ecoData.Eco_Id}&user_ID=${currentUserID}`
-          });
-          if (response.ok) {
-            const data = await response.json();
+          const data = await checkEcoLuvStatus(ecoData.Eco_Id, currentUserID);
+          if (data) {
             setIsLuved(data.luved);
             setCurrentLuvCount(data.total_luvs || 0);
           }
@@ -128,14 +118,8 @@ export default function EcoPage() {
       try {
         const token = await GetToken('jwt');
         if (!token) return;
-        const response = await fetch(`http://10.0.2.2:8100/eco-saved-status?ecoID=${ecoData.Eco_Id}`, {
-          method: 'POST',
-          headers: { 'Authorization': token }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsSaved(data.saved);
-        }
+        const data = await ecoSavedStatus(token, ecoData.Eco_Id);
+        if (data) setIsSaved(data.saved);
       } catch (error) {
         console.error('Fetch saved status error:', error);
       }
@@ -145,11 +129,10 @@ export default function EcoPage() {
 
   useEffect(() => {
     if (ecoData?.Eco_Id) {
-      fetch(`http://10.0.2.2:7011/get-echo-score?echo_id=${ecoData.Eco_Id}`)
-        .then(res => res.json())
+      getEcoScore(ecoData.Eco_Id)
         .then(data => {
-          setEcoQuality(data.Echo_Quality?.Valid ? data.Echo_Quality.Float64 : 0);
-          setEcoAIUsage(data.Echo_AI_Usage?.Valid ? data.Echo_AI_Usage.Float64 : 0);
+          setEcoQuality(data?.Echo_Quality?.Valid ? data.Echo_Quality.Float64 : 0);
+          setEcoAIUsage(data?.Echo_AI_Usage?.Valid ? data.Echo_AI_Usage.Float64 : 0);
         })
         .catch(() => {
           setEcoQuality(0);
@@ -170,18 +153,10 @@ export default function EcoPage() {
     try {
       const authToken = await GetToken('jwt');
       const isUnfollow = followInfo?.AlreadyFollowed;
-      const endpoint = isUnfollow ? 'http://10.0.2.2:8010/unfollow' : 'http://10.0.2.2:8010/follow';
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': authToken || ''
-        },
-        body: `followeeID=${ecoData.Uploader_ID}`
-      });
-      
-      if (response.ok) {
+      const success = isUnfollow
+        ? await unfollow(authToken || '', ecoData.Uploader_ID)
+        : await follow(authToken || '', ecoData.Uploader_ID);
+      if (success) {
         setFollowInfo(prev => prev ? {...prev, AlreadyFollowed: !prev.AlreadyFollowed, FollowerCount: prev.AlreadyFollowed ? prev.FollowerCount - 1 : prev.FollowerCount + 1} : null);
       }
     } catch (error) {
@@ -200,30 +175,11 @@ export default function EcoPage() {
     try {
       const authToken = await GetToken('jwt');
       
-      const response = await fetch('http://10.0.2.2:7011/luv', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': authToken || ''
-        },
-        body: `eco_id=${ecoData.Eco_Id}`
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
+      const data = await luvEco(authToken || '', ecoData.Eco_Id);
+      if (data) {
         setIsLuved(data.luved);
-        
-        const statusResponse = await fetch('http://10.0.2.2:7011/check-eco-luv-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `eco_id=${ecoData.Eco_Id}&user_ID=${currentUserID}`
-        });
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          setCurrentLuvCount(statusData.total_luvs || 0);
-        }
+        const statusData = await checkEcoLuvStatus(ecoData.Eco_Id, currentUserID!);
+        if (statusData) setCurrentLuvCount(statusData.total_luvs || 0);
       }
     } catch (error) {
       console.error('Luv error:', error);
@@ -280,7 +236,7 @@ export default function EcoPage() {
               {Array.from({ length: ecoData.Images_Count }, (_, index) => (
                 <Image
                   key={index}
-                  source={{ uri: `http://10.0.2.2:8088/e?eco_url=${ecoData.Eco_Url}&index=${index}` }}
+                  source={{ uri: ecoImageUrl(ecoData.Eco_Url, index) }}
                   style={{ width: screenWidth, height: 300 }}
                   resizeMode="contain"
                   onError={(error) => {
@@ -313,7 +269,7 @@ export default function EcoPage() {
                     }
                   }}>
                     <Image 
-                      source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${ecoData.Uploader_ID}` }} 
+                      source={{ uri: pfpUrl(ecoData.Uploader_ID) }} 
                       className="w-10 h-10 mr-3 rounded-full" 
                       resizeMode="cover" 
                       onError={() => setProfileImageError(true)}
@@ -403,16 +359,8 @@ export default function EcoPage() {
                       Alert.alert("Error", "Authentication required.");
                       return;
                     }
-                    const response = await fetch(`http://10.0.2.2:8100/save-eco?ecoID=${ecoData.Eco_Id}`, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': token
-                      }
-                    });
-                    if (response.ok) {
-                      const data = await response.json();
-                      setIsSaved(data.saved);
-                    }
+                    const data = await saveEco(token, ecoData.Eco_Id);
+                    if (data) setIsSaved(data.saved);
                   } catch (error) {
                     console.error('Save eco error:', error);
                   }

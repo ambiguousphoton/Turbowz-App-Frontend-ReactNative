@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, FlatList, ActivityIndicator, Text } from "react-native";
 import UserCardSquareComponent from "../UserCardSquareComponent";
+import { getFollowees } from "@/Services/api/followService";
 
 interface FollowingRouteProps {
     userID: number;
@@ -11,9 +12,8 @@ export function FollowingRoute({ userID }: FollowingRouteProps) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`http://10.0.2.2:8010/get-followees?checkID=${userID}`)
-            .then(res => res.json())
-            .then(data => setFollowing(data.IsFollowing || []))
+        getFollowees(userID)
+            .then(setFollowing)
             .catch(() => setFollowing([]))
             .finally(() => setLoading(false));
     }, [userID]);

@@ -23,6 +23,12 @@ import GliterAlertComponent from "@/components/GliterAlertComponent";
 import VotePanelComponent from "@/components/VotePanelComponent";
 import { ALLOWED_TAGS } from "@/HelperFuncs/constants";
 import ContentQualityBadge from "@/components/ContentQualityBadge";
+import { videoSavedStatus, getTurbomaxStatus, saveVideo } from "@/Services/api/userService";
+import { getVideoComments } from "@/Services/api/commentService";
+import { getFollowingInfo, follow, unfollow } from "@/Services/api/followService";
+import { pfpUrl } from "@/Services/api/imageService";
+import { getVideoScore, postView, luvVideo } from "@/Services/api/videoService";
+import { videoStreamUrl } from "@/Services/api/streamService";
      
 export default function VideoPage() {
   const { videoID, VideoURL } = useLocalSearchParams();
@@ -73,7 +79,7 @@ export default function VideoPage() {
     ]).start();
   };
   const snapPoints = useMemo(() => ['71%', "90%"], []);
-  const videoSource = `http://10.0.2.2:8091/get-video-stream/${VideoURL}/playlist.m3u8`;
+  const videoSource = videoStreamUrl(VideoURL as string);
   const videoPlayerRef = useRef<any>(null);
   useFocusEffect(
     useCallback(() => {
@@ -100,14 +106,8 @@ export default function VideoPage() {
       try {
         const token = await GetToken('jwt');
         if (!token) return;
-        const response = await fetch(`http://10.0.2.2:8100/video-saved-status?videoID=${videoID}`, {
-          method: 'POST',
-          headers: { 'Authorization': token }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsSaved(data.saved);
-        }
+        const data = await videoSavedStatus(token, videoID as string);
+        if (data) setIsSaved(data.saved);
       } catch (error) {
         console.error('Fetch saved status error:', error);
       }
@@ -127,11 +127,8 @@ export default function VideoPage() {
     const getFollowInfo = async () => {
       if (currentUserID && vmd?.Uploader_ID) {
         try {
-          const response = await fetch(`http://10.0.2.2:8010/get-following-info?userID=${vmd.Uploader_ID}&requesterID=${currentUserID}`);
-          if (response.ok) {
-            const data = await response.json();
-            setFollowInfo(data);
-          }
+          const data = await getFollowingInfo(vmd.Uploader_ID, currentUserID);
+          if (data) setFollowInfo(data);
         } catch (error) {
           console.error('Error fetching follow info:', error);
         }
@@ -142,20 +139,18 @@ export default function VideoPage() {
 
   useEffect(() => {
     if (vmd?.Uploader_ID) {
-      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${vmd.Uploader_ID}`)
-        .then(res => res.json())
-        .then(result => setIsTurboVerified(result.turbomax_active || false))
+      getTurbomaxStatus(vmd.Uploader_ID)
+        .then(setIsTurboVerified)
         .catch(() => setIsTurboVerified(false));
     }
   }, [vmd?.Uploader_ID]);
 
   useEffect(() => {
     if (videoID) {
-      fetch(`http://10.0.2.2:7999/get-videos-score?video_id=${videoID}`)
-        .then(res => res.json())
+      getVideoScore(videoID)
         .then(data => {
-          setVideoQuality(data.Video_Quality?.Valid ? data.Video_Quality.Float64 : 0);
-          setVideoAIUsage(data.Video_AI_Usage?.Valid ? data.Video_AI_Usage.Float64 : 0);
+          setVideoQuality(data?.Video_Quality?.Valid ? data.Video_Quality.Float64 : 0);
+          setVideoAIUsage(data?.Video_AI_Usage?.Valid ? data.Video_AI_Usage.Float64 : 0);
         })
         .catch(() => {
           setVideoQuality(0);
@@ -167,12 +162,9 @@ export default function VideoPage() {
   useEffect(() => {
     const fetchCommentsPreview = async () => {
       try {
-        const response = await fetch(`http://10.0.2.2:7200/get-comment?videoID=${videoID}&limit=3&offset=0`);
-        if (response.ok) {
-          const data = await response.json();
-          const commentsArray = data.comments || data || [];
-          setComments(commentsArray);
-        }
+        const data = await getVideoComments(+videoID, 3, 0);
+        const commentsArray = data.comments || data || [];
+        setComments(commentsArray);
       } catch (error) {
         // Error fetching comments preview
       }
@@ -201,13 +193,7 @@ export default function VideoPage() {
         console.log(userID);
         console.log('====================================');
         
-        await fetch("http://10.0.2.2:7999/view", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: `video_id=${videoID}&user_id=${userID}`,
-        });
+        await postView(videoID, userID);
         console.log("View updated!");
       } catch (err) {
         console.error("Failed to update view:", err);
@@ -233,18 +219,10 @@ export default function VideoPage() {
     try {
       const authToken = await GetToken('jwt');
       const isUnfollow = followInfo?.AlreadyFollowed;
-      const endpoint = isUnfollow ? 'http://10.0.2.2:8010/unfollow' : 'http://10.0.2.2:8010/follow';
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': authToken || ''
-        },
-        body: `followeeID=${vmd?.Uploader_ID}`
-      });
-      
-      if (response.ok) {
+      const success = isUnfollow
+        ? await unfollow(authToken || '', vmd?.Uploader_ID)
+        : await follow(authToken || '', vmd?.Uploader_ID);
+      if (success) {
         setFollowInfo(prev => prev ? {...prev, AlreadyFollowed: !prev.AlreadyFollowed, FollowerCount: prev.AlreadyFollowed ? prev.FollowerCount - 1 : prev.FollowerCount + 1} : null);
       }
     } catch (error) {
@@ -321,15 +299,7 @@ export default function VideoPage() {
                       return;
                     }
 
-                    const response = await fetch("http://10.0.2.2:7999/luv", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Authorization": token
-                      },
-                      body: `video_id=${+videoID}`
-                    });
-                    const result = await response.json();
+                    const result = await luvVideo(token, videoID);
                     setIsLuvved(result.luved);
                   } catch (err) {
                     // Failed to luv video
@@ -376,16 +346,8 @@ export default function VideoPage() {
                       Alert.alert("Error", "Authentication required.");
                       return;
                     }
-                    const response = await fetch(`http://10.0.2.2:8100/save-video?videoID=${videoID}`, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': token
-                      }
-                    });
-                    if (response.ok) {
-                      const data = await response.json();
-                      setIsSaved(data.saved);
-                    }
+                    const data = await saveVideo(token, videoID as string);
+                    if (data) setIsSaved(data.saved);
                   } catch (error) {
                     // Save video error
                   }
@@ -413,7 +375,7 @@ export default function VideoPage() {
               }
             }}>
               <Image 
-                source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${vmd?.Uploader_ID}` }} 
+                source={{ uri: pfpUrl(vmd?.Uploader_ID) }} 
                 className="w-10 h-10 mr-3 rounded-xl" 
                 resizeMode="cover" 
                 onError={() => setProfileImageError(true)}

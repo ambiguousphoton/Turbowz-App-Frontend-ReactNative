@@ -6,6 +6,9 @@ import ActivityHeatmap from '../ActivityHeatmap';
 import useFetch from '@/Services/useFetch';
 import { GetToken } from '@/HelperFuncs/localStorage';
 import { useRouter } from 'expo-router';
+import { getSavedEcos } from '@/Services/api/ecoService';
+import { getWatchHistory, getActivityData } from '@/Services/api/activityService';
+import { getSavedVideos } from '@/Services/api/videoService';
 
 interface ActivitiesRouteProps {
   userID: number;
@@ -14,37 +17,21 @@ interface ActivitiesRouteProps {
 
 const fetchWatchHistory = async (page: number = 1) => {
   const token = await GetToken('jwt');
-  const response = await fetch(`http://10.0.2.2:7992/get-user-watch-history?page=${page}&limit=50`, {
-    headers: {
-      'Authorization': token || ''
-    }
-  });
-  return response.json();
+  return getWatchHistory(token || '', page, 50);
 };
 
 const fetchSavedVideos = async (offset: number = 0) => {
   const token = await GetToken('jwt');
-  const response = await fetch(`http://10.0.2.2:7999/get-saved-videos?limit=10&offset=${offset}`, {
-    headers: {
-      'Authorization': token || ''
-    }
-  });
-  return response.json();
+  return getSavedVideos(token || '', 10, offset);
 };
 
 const fetchSavedEcos = async (offset: number = 0) => {
   const token = await GetToken('jwt');
-  const response = await fetch(`http://10.0.2.2:7011/get-saved-ecos?limit=10&offset=${offset}`, {
-    headers: {
-      'Authorization': token || ''
-    }
-  });
-  return response.json();
+  return getSavedEcos(token || '', 10, offset);
 };
 
-const fetchActivityData = async (userID: number) => {
-  const response = await fetch(`http://10.0.2.2:7992/get-activity-data?userID=${userID}`);
-  return response.json();
+const fetchActivityDataFn = async (userID: number) => {
+  return getActivityData(userID);
 };
 
 export const ActivitiesRoute = ({ userID, isMyProfile }: ActivitiesRouteProps) => {
@@ -59,7 +46,7 @@ export const ActivitiesRoute = ({ userID, isMyProfile }: ActivitiesRouteProps) =
   const { data: videos, loading, error } = useFetch(() => fetchWatchHistory(1), true);
   const { data: savedData, loading: savedLoadingState } = useFetch(() => fetchSavedVideos(0), true);
   const { data: savedEcosData, loading: savedEcosLoading } = useFetch(() => fetchSavedEcos(0), true);
-  const { data: activityData } = useFetch(() => fetchActivityData(userID), true);
+  const { data: activityData } = useFetch(() => fetchActivityDataFn(userID), true);
   
   React.useEffect(() => {
     if (videos?.results) {

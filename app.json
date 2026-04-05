@@ -39,7 +39,8 @@
       ],
       "expo-secure-store",
       "expo-video",
-      "expo-sqlite"
+      "expo-sqlite",
+      "react-native-compressor"
     ],
     "experiments": {
       "typedRoutes": true

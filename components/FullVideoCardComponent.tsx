@@ -3,6 +3,8 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { timeAgo } from '@/HelperFuncs/timeAgo';
 import { TagsDisplay } from './TagsDisplay';
+import { videoSavedStatus, getTurbomaxStatus, saveVideo } from '@/Services/api/userService';
+import { imageUrl, pfpUrl } from '@/Services/api/imageService';
 
 interface FullVideoCardComponentProps {
   VideoURL: string;
@@ -39,14 +41,8 @@ export default function FullVideoCardComponent({
         const { GetToken } = await import('@/HelperFuncs/localStorage');
         const token = await GetToken('jwt');
         if (!token) return;
-        const response = await fetch(`http://10.0.2.2:8100/video-saved-status?videoID=${Video_ID}`, {
-          method: 'POST',
-          headers: { 'Authorization': token }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsSaved(data.saved);
-        }
+        const data = await videoSavedStatus(token, Video_ID);
+        if (data) setIsSaved(data.saved);
       } catch (error) {
         console.error('Fetch saved status error:', error);
       }
@@ -56,9 +52,8 @@ export default function FullVideoCardComponent({
 
   useEffect(() => {
     if (Uploader_ID) {
-      fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${Uploader_ID}`)
-        .then(res => res.json())
-        .then(result => setIsTurboVerified(result.turbomax_active || false))
+      getTurbomaxStatus(Uploader_ID)
+        .then(setIsTurboVerified)
         .catch(() => setIsTurboVerified(false));
     }
   }, [Uploader_ID]);
@@ -78,7 +73,7 @@ export default function FullVideoCardComponent({
           </View>
         ) : (
           <Image 
-            source={{ uri: `http://10.0.2.2:8088/i?img=${VideoURL}` }}
+            source={{ uri: imageUrl(VideoURL) }}
             className="w-full bg-gray-200 rounded-lg"
             style={{ aspectRatio: 16/9 }}
             resizeMode="cover"
@@ -103,7 +98,7 @@ export default function FullVideoCardComponent({
           </View>
         ) : (
           <Image 
-            source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${Uploader_ID}` }} 
+            source={{ uri: pfpUrl(Uploader_ID) }} 
             className="w-9 h-9 mr-4 rounded-full" 
             resizeMode="cover" 
             onError={() => setProfileImageError(true)}
@@ -124,16 +119,8 @@ export default function FullVideoCardComponent({
                     console.error('Authentication required');
                     return;
                   }
-                  const response = await fetch(`http://10.0.2.2:8100/save-video?videoID=${Video_ID}`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': token
-                    }
-                  });
-                  if (response.ok) {
-                    const data = await response.json();
-                    setIsSaved(data.saved);
-                  }
+                  const data = await saveVideo(token, Video_ID);
+                  if (data) setIsSaved(data.saved);
                 } catch (error) {
                   console.error('Save video error:', error);
                 }

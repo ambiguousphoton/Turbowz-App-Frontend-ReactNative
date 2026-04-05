@@ -3,6 +3,8 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { VideoCardInterface } from '@/interfaces/interfaces'
 import React, { useState, useEffect } from "react";
 import { TagsDisplay } from './TagsDisplay';
+import { videoSavedStatus, saveVideo } from '@/Services/api/userService';
+import { imageUrl } from '@/Services/api/imageService';
 
 
 
@@ -56,14 +58,8 @@ const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoUR
                 const { GetToken } = await import('@/HelperFuncs/localStorage');
                 const token = await GetToken('jwt');
                 if (!token) return;
-                const response = await fetch(`http://10.0.2.2:8100/video-saved-status?videoID=${VideoID}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': token }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setIsSaved(data.saved);
-                }
+                const data = await videoSavedStatus(token, VideoID);
+                if (data) setIsSaved(data.saved);
             } catch (error) {
                 console.error('Fetch saved status error:', error);
             }
@@ -92,7 +88,7 @@ const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoUR
                     </View>
                 ) : (
                     <Image
-                        source={{ uri: `http://10.0.2.2:8088/i?img=${VideoURL}` }}
+                        source={{ uri: imageUrl(VideoURL) }}
                         style={{ width: imageWidth, height: imageHeight }}
                         className="rounded-2xl"
                         resizeMode="cover"
@@ -127,16 +123,8 @@ const VideoCard =({ VideoID, UploaderName, UploaderHandle, Title, Views, VideoUR
                                         console.error('Authentication required');
                                         return;
                                     }
-                                    const response = await fetch(`http://10.0.2.2:8100/save-video?videoID=${VideoID}`, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Authorization': token
-                                        }
-                                    });
-                                    if (response.ok) {
-                                        const data = await response.json();
-                                        setIsSaved(data.saved);
-                                    }
+                                    const data = await saveVideo(token, VideoID);
+                                    if (data) setIsSaved(data.saved);
                                 } catch (error) {
                                     console.error('Save video error:', error);
                                 }

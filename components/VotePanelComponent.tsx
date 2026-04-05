@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Animated, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GetUser } from '@/HelperFuncs/localStorage';
+import { postVideoVote, postEcoVote } from '@/Services/api/activityService';
 
 interface VotePanelProps {
   isExpanded: boolean;
@@ -148,17 +149,9 @@ export default function VotePanelComponent({ isExpanded, setIsExpanded, contentI
                 return;
               }
               try {
-                const endpoint = contentType === 'video' 
-                  ? 'http://10.0.2.2:7992/post-video-vote'
-                  : 'http://10.0.2.2:7992/post-echo-vote';
-                const body = contentType === 'video'
-                  ? { video_id: contentId, user_id: userId, quality: selectedQuality, ai_usage: selectedAI }
-                  : { eco_id: contentId, user_id: userId, quality: selectedQuality, ai_usage: selectedAI };
-                const response = await fetch(endpoint, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(body)
-                });
+                const response = contentType === 'video'
+                  ? await postVideoVote(contentId, userId, selectedQuality, selectedAI)
+                  : await postEcoVote(contentId, userId, selectedQuality, selectedAI);
                 if (response.ok) {
                   Alert.alert('Success', 'Vote submitted successfully');
                   setSelectedQuality(null);

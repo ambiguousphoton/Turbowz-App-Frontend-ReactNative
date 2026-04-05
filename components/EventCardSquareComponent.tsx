@@ -1,6 +1,7 @@
 import {Text, View, ActivityIndicator, Pressable, Image} from 'react-native'
 import { router } from 'expo-router'
 import React, { useState, useEffect } from "react";
+import { eventImageUrl } from '@/Services/api/imageService';
 
 interface EventData {
     Event_Id: number;
@@ -25,7 +26,7 @@ const EventCardSquareComponent = ({event}: {event: EventData}) => {
             {/* Event Image */}
             {event.Images_Count > 0 && !imageError ? (
                 <Image 
-                    source={{ uri: `http://10.0.2.2:8088/event-img?event_url=${event.Event_Url}_0` }} 
+                    source={{ uri: eventImageUrl(`${event.Event_Url}_0`) }} 
                     className="w-full h-32" 
                     resizeMode="cover" 
                     onError={() => setImageError(true)}

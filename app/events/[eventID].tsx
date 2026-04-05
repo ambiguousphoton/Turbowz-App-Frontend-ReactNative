@@ -6,6 +6,9 @@ import { GetToken, GetUser } from "@/HelperFuncs/localStorage";
 import { timeAgo } from "@/HelperFuncs/timeAgo";
 import ContentPageHeader from "@/components/ContentPageHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { saveEvent } from "@/Services/api/userService";
+import { getEventMetadata, luvEvent } from "@/Services/api/eventService";
+import { eventImageUrl } from "@/Services/api/imageService";
 
 interface EventData {
   Event_Id: number;
@@ -41,20 +44,7 @@ export default function EventPage() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        console.log('Fetching event:', eventID);
-        const response = await fetch(`http://10.0.2.2:7002/event-md?event_id=${eventID}`);
-        console.log('Response status:', response.status);
-        const text = await response.text();
-        console.log('Response text:', text);
-        
-        if (!response.ok) {
-          console.error('API error:', text);
-          setLoading(false);
-          return;
-        }
-        
-        const data = JSON.parse(text);
-        console.log('Event data:', data);
+        const data = await getEventMetadata(eventID);
         if (data && data.Event_Id) {
           setEvent(data);
           setIsLuved(data.Already_Luved);
@@ -80,18 +70,8 @@ export default function EventPage() {
   const handleLuv = async () => {
     try {
       const token = await GetToken('jwt');
-      const response = await fetch('http://10.0.2.2:7002/luv-event', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': token || ''
-        },
-        body: `event_id=${eventID}`
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setIsLuved(data.luved);
-      }
+      const data = await luvEvent(token || '', eventID as string);
+      if (data) setIsLuved(data.luved);
     } catch (error) {
       console.error('Luv error:', error);
     }
@@ -100,14 +80,8 @@ export default function EventPage() {
   const handleSave = async () => {
     try {
       const token = await GetToken('jwt');
-      const response = await fetch(`http://10.0.2.2:8100/save-event?eventID=${eventID}`, {
-        method: 'POST',
-        headers: { 'Authorization': token || '' }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setIsSaved(data.saved);
-      }
+      const data = await saveEvent(token || '', eventID as string);
+      if (data) setIsSaved(data.saved);
     } catch (error) {
       console.error('Save error:', error);
     }
@@ -138,7 +112,7 @@ export default function EventPage() {
         <View style={{ position: 'relative' }}>
           {event.Images_Count > 0 && !imageError ? (
             <Image
-              source={{ uri: `http://10.0.2.2:8088/event-img?event_url=${event.Event_Url}_0` }}
+              source={{ uri: eventImageUrl(`${event.Event_Url}_0`) }}
               className="w-full h-56"
               resizeMode="cover"
               onError={() => setImageError(true)}

@@ -3,6 +3,7 @@ import { View, FlatList, ActivityIndicator, Text, TouchableOpacity, Image } from
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UserProfileCardTypeSearch from "@/components/UserProfileCardTypeSearch";
+import { getFollowees } from "@/Services/api/followService";
 
 export default function FollowingPage() {
     const router = useRouter();
@@ -13,9 +14,8 @@ export default function FollowingPage() {
 
     useEffect(() => {
         if (userID) {
-            fetch(`http://10.0.2.2:8010/get-followees?checkID=${userID}`)
-                .then(res => res.json())
-                .then(data => setFollowing(data.IsFollowing || []))
+            getFollowees(userID)
+                .then(setFollowing)
                 .catch(() => setFollowing([]))
                 .finally(() => setLoading(false));
         }

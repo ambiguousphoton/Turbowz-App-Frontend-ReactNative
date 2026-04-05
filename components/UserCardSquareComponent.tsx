@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { UserDataInterface } from '@/interfaces/interfaces';
 import { GetUser } from '@/HelperFuncs/localStorage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getUser, getTurbomaxStatus } from '@/Services/api/userService';
+import { pfpUrl } from '@/Services/api/imageService';
 
 const UserCardSquareComponent = ({ userID, onDismiss }: { userID: string; onDismiss?: () => void }) => {
     const [data, setData] = useState<UserDataInterface | null>(null);
@@ -20,15 +22,13 @@ const UserCardSquareComponent = ({ userID, onDismiss }: { userID: string; onDism
         };
         getUserID();
 
-        fetch(`http://10.0.2.2:8100/get-user?userID=${userID}`)
-            .then(res => res.json())
+        getUser(userID)
             .then(setData)
             .catch(() => setData(null))
             .finally(() => setLoading(false));
 
-        fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${userID}`)
-            .then(res => res.json())
-            .then(result => setIsTurboVerified(result.turbomax_active || false))
+        getTurbomaxStatus(userID)
+            .then(setIsTurboVerified)
             .catch(() => setIsTurboVerified(false));
     }, [userID]);
 
@@ -84,7 +84,7 @@ const UserCardSquareComponent = ({ userID, onDismiss }: { userID: string; onDism
                         </View>
                     ) : (
                         <Image
-                            source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${userID}` }}
+                            source={{ uri: pfpUrl(userID) }}
                             style={styles.avatar}
                             resizeMode="cover"
                             onError={() => setProfileImageError(true)}

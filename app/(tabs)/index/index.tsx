@@ -1,7 +1,11 @@
 import { Text, View, Image, ActivityIndicator, FlatList, TouchableOpacity, ScrollView, Animated, Dimensions, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import HeaderBar from "../../../components/HeaderBar";
-import { FetchVideos, FetchUsers } from "@/Services/SearchAPI";
+import { searchVideos as fetchSearchVideos } from "@/Services/api/searchService";
+import { searchUsers } from "@/Services/api/userService";
+import { getTrendingEcos } from "@/Services/api/ecoService";
+import { getIndexEvents } from "@/Services/api/eventService";
+import { getTrendingVideos } from "@/Services/api/videoService";
 import useFetch from "@/Services/useFetch";
 import { GetUser } from "@/HelperFuncs/localStorage";
 import VideoCard from "@/components/VideoCardCompnent";
@@ -17,8 +21,8 @@ import EventCardSquareComponent from "@/components/EventCardSquareComponent";
 
 
 export default function Index() {
-  const params = useGlobalSearchParams<{ q?: string }>();
-  const initialQuery = params.q ?? '';
+  const params = useGlobalSearchParams<{ q?: string }>() ?? {};
+  const initialQuery = Array.isArray(params.q) ? params.q[0] ?? '' : params.q ?? '';
   const insets = useSafeAreaInsets();
 
   const [searchQuerry, setSearchQuerry] = useState<string>(initialQuery);
@@ -52,12 +56,12 @@ export default function Index() {
     const offset = (pageNum - 1) * 10;
     
     const [videosResponse, ecosResponse] = await Promise.all([
-      fetch(`http://10.0.2.2:7999/get-trending-videos?limit=10&offset=${offset}&userID=${userID}`),
-      fetch(`http://10.0.2.2:7011/get-trending-ecos?limit=10&offset=${offset}`)
+      getTrendingVideos(10, offset, userID),
+      getTrendingEcos(10, offset)
     ]);
     
-    const videos = await videosResponse.json();
-    const ecos = await ecosResponse.json();
+    const videos = videosResponse || [];
+    const ecos = ecosResponse || [];
     
     // Mix videos and ecos randomly
     const mixed = [];
@@ -80,7 +84,7 @@ export default function Index() {
     refetch: usersRefetch,
     reset: usersReset,
     error: usersError,
-  } = useFetch(() => FetchUsers({ keyword: searchQuerry }), true);
+  } = useFetch(() => searchUsers(searchQuerry), true);
 
   const {
     data: videos,
@@ -88,7 +92,7 @@ export default function Index() {
     refetch: videosRefetch,
     reset: videosReset,
     error: videosError,
-  } = useFetch(() => FetchVideos({ keyword: searchQuerry, limit: 10, offset: 0 }), true);
+  } = useFetch(() => fetchSearchVideos({ keyword: searchQuerry, limit: 10, offset: 0 }), true);
   
   const {
     data: trendingContent,
@@ -103,8 +107,7 @@ export default function Index() {
     };
     loadUser();
     
-    fetch('http://10.0.2.2:7002/index-events?limit=20&offset=0')
-      .then(res => res.json())
+    getIndexEvents(20, 0)
       .then(setEvents)
       .catch(() => setEvents([]));
   }, []);
@@ -154,8 +157,8 @@ export default function Index() {
       const nextVideoPage = videoPage + 1;
       const offset = (nextVideoPage - 1) * 10;
       
-      const response = await fetch(`http://10.0.2.2:7999/get-trending-videos?limit=10&offset=${offset}&userID=${userID}`);
-      const newVideos = await response.json();
+      const response = await getTrendingVideos(10, offset, userID);
+      const newVideos = response;
       
       if (newVideos && newVideos.length > 0) {
         const videosWithType = newVideos.map((video: any) => ({ ...video, type: 'video' }));
@@ -177,8 +180,7 @@ export default function Index() {
       const nextEcoPage = ecoPage + 1;
       const offset = (nextEcoPage - 1) * 10;
       
-      const response = await fetch(`http://10.0.2.2:7011/get-trending-ecos?limit=10&offset=${offset}`);
-      const newEcos = await response.json();
+      const newEcos = await getTrendingEcos(10, offset);
       
       if (newEcos && newEcos.length > 0) {
         const ecosWithType = newEcos.map((eco: any) => ({ ...eco, type: 'eco' }));
@@ -234,7 +236,7 @@ export default function Index() {
     setLoadingMoreSearch(true);
     try {
       const newOffset = searchOffset + 10;
-      const newVideos = await FetchVideos({ keyword: searchQuerry, limit: 10, offset: newOffset });
+      const newVideos = await fetchSearchVideos({ keyword: searchQuerry, limit: 10, offset: newOffset });
       
       if (newVideos && newVideos.length > 0) {
         setSearchVideos(prev => [...prev, ...newVideos]);
@@ -410,7 +412,7 @@ export default function Index() {
         )}
       </ScrollView>) : (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 60, paddingBottom: 100 }} onScroll={handleTrendingScroll} scrollEventThrottle={16} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-          {events.length > 0 && (
+          {events?.length > 0 && (
             <View className="mb-4">
               <Text className="px-4 py-2 text-lg font-semibold">Upcoming Events</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">

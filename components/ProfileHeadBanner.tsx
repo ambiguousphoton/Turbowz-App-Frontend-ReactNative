@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, Modal } from 'react-native';
 import { UserDataInterface } from "@/interfaces/interfaces";
 import { useRouter } from 'expo-router';
+import { getTurbomaxStatus } from '@/Services/api/userService';
+import { pfpUrl } from '@/Services/api/imageService';
 
 interface ProfileHeadBannerProps {
     user: UserDataInterface;
@@ -16,9 +18,8 @@ const ProfileHeadBanner: React.FC<ProfileHeadBannerProps> = ({ user, followInfo 
     
     useEffect(() => {
         if (user?.UserID) {
-            fetch(`http://10.0.2.2:8100/get-turbomax-status?userID=${user.UserID}`)
-                .then(res => res.json())
-                .then(result => setIsTurboVerified(result.turbomax_active || false))
+            getTurbomaxStatus(user.UserID)
+                .then(setIsTurboVerified)
                 .catch(() => setIsTurboVerified(false));
         }
     }, [user?.UserID]);
@@ -49,7 +50,7 @@ const ProfileHeadBanner: React.FC<ProfileHeadBannerProps> = ({ user, followInfo 
                     onPress={() => setShowImageModal(false)}
                 >
                     <Image 
-                        source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${user?.UserID}` }}
+                        source={{ uri: pfpUrl(user?.UserID) }}
                         className="w-full h-96"
                         resizeMode="contain"
                     />
@@ -84,7 +85,7 @@ const ProfileHeadBanner: React.FC<ProfileHeadBannerProps> = ({ user, followInfo 
                     ) : (
                         <TouchableOpacity onPress={() => setShowImageModal(true)}>
                             <Image 
-                                source={{ uri: `http://10.0.2.2:8088/pfp?user_id=${user?.UserID}` }}
+                                source={{ uri: pfpUrl(user?.UserID) }}
                                 className="w-24 h-24 rounded-full border-4 border-white" 
                                 resizeMode="cover" 
                                 onError={() => setProfileImageError(true)}

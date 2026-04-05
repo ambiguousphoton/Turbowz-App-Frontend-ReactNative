@@ -5,15 +5,11 @@ import { useRouter } from 'expo-router';
 import VideoCard from '@/components/VideoCardCompnent';
 import useFetch from '@/Services/useFetch';
 import { GetToken } from '@/HelperFuncs/localStorage';
+import { getSavedVideos } from '@/Services/api/videoService';
 
 const fetchSavedVideos = async (offset: number = 0) => {
   const token = await GetToken('jwt');
-  const response = await fetch(`http://10.0.2.2:7999/get-saved-videos?limit=50&offset=${offset}`, {
-    headers: {
-      'Authorization': token || ''
-    }
-  });
-  return response.json();
+  return getSavedVideos(token || '', 50, offset);
 };
 
 export default function SavedPage() {
