@@ -26,10 +26,12 @@ export function SignInComponent() {
     try {
       setError("");
       const { token, userID } = await signInAccount(user);
+      console.log("[signIn] userID from auth:", userID, typeof userID);
       setJwt(token);
       await SaveToken("jwt", token);
 
       const userDetails = await getUser(userID);
+      console.log("[signIn] userDetails:", JSON.stringify(userDetails));
       
       const userData: UserDataInterface = {
         UserID: +userID,

@@ -2,17 +2,25 @@ import ProfileDataComponent from  "@/components/ProfileDataComponent";
 import React, { useState, useEffect } from "react";
 import { Text , Image, View} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { GetUser } from "@/HelperFuncs/localStorage";
-import { UserDataInterface } from "@/interfaces/interfaces";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
     const insets = useSafeAreaInsets();
     const [userID, setUserID] = useState<number | null>(null);
+    const { signOutSession } = useAuth();
 
     useEffect(() => {
         const getUserID = async () => {
             const localUser = await GetUser();
-            setUserID(localUser?.UserID || null);
+            if (!localUser?.UserID) {
+                console.log("[myprofile] No valid UserID, signing out. localUser:", JSON.stringify(localUser));
+                await signOutSession();
+                router.replace("/auth/sign-in");
+                return;
+            }
+            setUserID(localUser.UserID);
         };
         getUserID();
     }, []);

@@ -1,1 +1,1 @@
-export { signUpAccount, signInAccount } from "./api/userService";
+export { signUpAccount, signInAccount, verifyEmail, confirmEmail } from "./api/userService";

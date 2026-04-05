@@ -7,13 +7,31 @@ const BASE_URL =
 
 // --- Auth ---
 
+export async function verifyEmail(email: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ email }).toString(),
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
+
+export async function confirmEmail(email: string, otp: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/confirm-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ email, otp }).toString(),
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
+
 export async function signUpAccount(user: UserSignUpInterface): Promise<{ token: string; userID: string }> {
   const response = await fetch(`${BASE_URL}/create-new-account`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams(user as Record<string, string>).toString(),
   });
-  if (!response.ok) throw new Error(`Failed to create account: ${response.statusText}`);
+  if (!response.ok) throw new Error(await response.text());
   return response.json();
 }
 
