@@ -31,9 +31,17 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# Editor
+.vscode/
 
 # typescript
 *.tsbuildinfo
-/HBchoubay.mp4
+
+# Unnecessary files
+*.dmg
+*.pdf
+*.png~
 app-example
